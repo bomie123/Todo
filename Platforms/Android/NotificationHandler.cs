@@ -8,9 +8,7 @@ namespace TodoApp.Platforms.Android
     {
         public const string NotificationChannelId = "TodoAppKeepAliveNotificationChannel";
         private const string NotificationChannelName = "Todo App";
-        private const string DefaultNotificationText = "";
 
-        public const int NotificationId = TodoAppForegroundService.ServiceId;
         private const int IconId = global::Android.Resource.Drawable.CheckboxOnBackground;
 
         public NotificationHandler(MainActivity activity, NotificationManager manager)
@@ -21,11 +19,12 @@ namespace TodoApp.Platforms.Android
                 manager.CreateNotificationChannel(new NotificationChannel(NotificationChannelId, NotificationChannelName, NotificationImportance.Min));
         }
 
-        public void SendNotification(string notificationText) =>
-        AndroidManager.Notify(NotificationId, GetDefaultNotificationBuilder(notificationText).Build());
 
-        public void SendNotifications(Notification notification) =>
-            AndroidManager.Notify(NotificationId, notification);
+        public void SendNotification(string notificationText, TodoAppNotificationChannel channel) =>
+            SendNotification(GetDefaultNotificationBuilder(notificationText).Build(), channel);
+
+        public void SendNotification(Notification notification, TodoAppNotificationChannel channel) =>
+            AndroidManager.Notify((int)channel, notification);
 
 
         private NotificationManager AndroidManager { get; set; }
@@ -38,17 +37,24 @@ namespace TodoApp.Platforms.Android
                 .SetContentIntent(GetNotificationIntent())
                 .SetSmallIcon(IconId)
                 .SetOnlyAlertOnce(true)
+                .SetOngoing(true)
                 .SetSilent(true)
                 .SetPriority(NotificationCompat.PriorityMin)
                 .SetCategory(NotificationCompat.CategoryStatus);
 
         public NotificationCompat.Builder GetDefaultNotificationBuilder() =>
-            GetDefaultNotificationBuilder(DefaultNotificationText);
+            GetDefaultNotificationBuilder("");
 
         private PendingIntent GetNotificationIntent()
-            => PendingIntent.GetActivity(Activity, NotificationId,
+            => PendingIntent.GetActivity(Activity, 0,
                 new Intent(Activity, typeof(MainActivity))
                     .AddFlags(ActivityFlags.NoAnimation),
                 PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Mutable);
+    }
+
+    public enum TodoAppNotificationChannel
+    {
+        ForegroundServiceNotificationId = TodoAppForegroundService.ServiceId,
+        WarningNotificationId = 5090101
     }
 }

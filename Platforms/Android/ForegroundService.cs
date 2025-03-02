@@ -27,7 +27,11 @@ namespace TodoApp.Platforms.Android
             {
                 count += 1;
                 Console.WriteLine("Am running");
-                MainActivity.NotificationHandler.SendNotification($"Got to count {count}");
+                if (count % 10 == 0)
+                {
+                    MainActivity.NotificationHandler.SendNotification(MainActivity.NotificationHandler.GetDefaultNotificationBuilder("sending warning ").Build(), TodoAppNotificationChannel.WarningNotificationId);
+                }
+                MainActivity.NotificationHandler.SendNotification($"Got to count {count}", TodoAppNotificationChannel.ForegroundServiceNotificationId);
             }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
             return StartCommandResult.Sticky;
         }
