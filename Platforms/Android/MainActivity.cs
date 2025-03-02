@@ -3,6 +3,7 @@ using Android.Content;
 using Android.Content.PM;
 using Android.OS;
 using AndroidX.Core.App;
+using System.Diagnostics;
 using TodoApp.Platforms.Android;
 
 namespace TodoApp;
@@ -13,57 +14,32 @@ public class MainActivity : MauiAppCompatActivity
     protected override void OnCreate(Bundle savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
-        //create our notification channel 
-        var notificationManager = (GetSystemService(NotificationService) as NotificationManager);
-        if (notificationManager.GetNotificationChannel(NotificationChannelId) == null)
-            notificationManager.CreateNotificationChannel(new NotificationChannel(NotificationChannelId, NotificationChannelName, NotificationImportance.Default)
-            {
-                Description = NotificationChannelDescription
-            });
 
-        //create our main app notification 
-        if (!notificationManager.GetActiveNotifications().Any(x => x.Id == NotificationId))
-        {
-
-        }
+        //check our permissions
+        GetRequiredPermission<Permissions.PostNotifications>().Wait();
+        NotificationHandler =
+            new NotificationHandler(this, this.GetSystemService(NotificationService) as NotificationManager);
 
         //create our foreground service 
         if (this.ApplicationContext.GetSystemService(nameof(TodoAppForegroundService)) == null)
             ApplicationContext.StartForegroundService(new Intent(this.ApplicationContext, typeof(TodoAppForegroundService)));
 
-    }  
+        //TODO
+        //Setup nosql database and cache
+    }
+    #region Permissions
 
-    #region Notification Channel 
-    public const string NotificationChannelId = "TodoAppKeepAliveNotificationChannel";
-    private const string NotificationChannelName = "Todo App";
-    private string NotificationChannelDescription = "Your next Activity is X long away";
+    private async Task GetRequiredPermission<T>() where T : Permissions.BasePermission, new()
+    {
 
+        if (await Permissions.CheckStatusAsync<T>() != PermissionStatus.Granted)
+        {
+            while (await Permissions.RequestAsync<T>() != PermissionStatus.Granted) { }
+        }
+    }
     #endregion
 
-    #region Notification Details
 
-    public const int NotificationId = 4550602;
-    private const string NotificationContentTitle = "Todo App";
-    public const int IconId = global::Android.Resource.Drawable.CheckboxOnBackground;
+    public static NotificationHandler? NotificationHandler { get; set; } = null;
 
-    private Notification GetNotification(string notificationText) =>
-        new NotificationCompat.Builder(this, MainActivity.NotificationChannelId)
-            .SetContentTitle(NotificationContentTitle)
-            .SetContentText(notificationText)
-            .SetSmallIcon(IconId)
-            .SetOngoing(true)
-            .SetContentIntent(GetNotificationIntent())
-            .SetOnlyAlertOnce(true)
-            .SetPriority(NotificationCompat.PriorityHigh)
-            .SetCategory(NotificationCompat.CategoryMessage)
-            .SetAutoCancel(true)
-            .Build();
-
-    private PendingIntent GetNotificationIntent()
-        => PendingIntent.GetActivity(this, NotificationId,
-            new Intent(this, typeof(MainActivity))
-                .AddFlags(ActivityFlags.NoAnimation | ActivityFlags.SingleTop),
-            PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Mutable | PendingIntentFlags.OneShot);
-
-    #endregion
 }

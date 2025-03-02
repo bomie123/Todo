@@ -20,22 +20,24 @@ namespace TodoApp.Platforms.Android
         public const int ServiceId = 15340201;
         public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
         {
-            var notification = GetNotification("TestIntro");
             if (Build.VERSION.SdkInt < BuildVersionCodes.Tiramisu)
             {
-                StartForeground(ServiceId, notification);
+                StartForeground(ServiceId, MainActivity.NotificationHandler.GetDefaultNotificationBuilder().Build());
             }
             else
             {
-                StartForeground(ServiceId, notification, ForegroundService.TypeDataSync);
+                StartForeground(ServiceId, MainActivity.NotificationHandler.GetDefaultNotificationBuilder().Build(), ForegroundService.TypeDataSync);
             }
-            NotificationManagerCompat.From(this).Notify(NotificationId, notification);
+            
             BackgroundServiceToRun = new Timer((obj) =>
             {
+                count += 1;
                 Console.WriteLine("Am running");
+                MainActivity.NotificationHandler.SendNotification($"Got to count {count}");
             }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
             return StartCommandResult.Sticky;
         }
+        public static int count { get; set; }
      
 
     }
