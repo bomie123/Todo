@@ -1,8 +1,6 @@
 ﻿using Android.App;
 using Android.Content;
-using Android.OS;
 using AndroidX.Core.App;
-using Application = Android.App.Application;
 
 namespace TodoApp.Platforms.Android
 {
@@ -22,68 +20,36 @@ namespace TodoApp.Platforms.Android
         }
 
 
-        public void SendPersistentNotification(string notificationText, TodoAppNotificationChannel channel) =>
-            SendNotification(GetDefaultPersistentNotificationBuilder(notificationText).Build(), channel);
+        public void SendNotification(string notificationText, TodoAppNotificationChannel channel) =>
+            SendNotification(GetDefaultNotificationBuilder(notificationText).Build(), channel);
 
         public void SendNotification(Notification notification, TodoAppNotificationChannel channel) =>
-        AndroidManager.Notify((int)channel, notification);
+            AndroidManager.Notify((int)channel, notification);
 
 
         private NotificationManager AndroidManager { get; set; }
         private MainActivity Activity { get; set; }
 
-        public NotificationCompat.Builder GetDefaultPersistentNotificationBuilder(string notificationText) =>
+        public NotificationCompat.Builder GetDefaultNotificationBuilder(string notificationText) =>
             new NotificationCompat.Builder(Activity, NotificationChannelId)
                 .SetContentTitle(NotificationChannelName)
                 .SetContentText(notificationText)
-                .SetContentIntent(OpenMainActivityPageIntent())
+                .SetContentIntent(GetNotificationIntent())
                 .SetSmallIcon(IconId)
                 .SetOnlyAlertOnce(true)
-                .SetDeleteIntent(OpenMainActivityPageIntent())
                 .SetOngoing(true)
                 .SetSilent(true)
                 .SetPriority(NotificationCompat.PriorityMin)
                 .SetCategory(NotificationCompat.CategoryStatus);
 
-        public NotificationCompat.Builder GetDefaultNotificationBuilder(string notificationText) =>
-            new NotificationCompat.Builder(Activity, NotificationChannelId)
-                .SetContentTitle(NotificationChannelName)
-                .SetContentText(notificationText)
-                .SetContentIntent(OpenMainActivityPageIntent())
-                .SetSmallIcon(IconId)
-                .SetOnlyAlertOnce(true)
-                .SetPriority(NotificationCompat.PriorityDefault)
-                .SetCategory(NotificationCompat.CategoryStatus);
-
-
         public NotificationCompat.Builder GetDefaultNotificationBuilder() =>
-            GetDefaultPersistentNotificationBuilder("");
+            GetDefaultNotificationBuilder("");
 
-        private PendingIntent OpenMainActivityPageIntent()
+        private PendingIntent GetNotificationIntent()
             => PendingIntent.GetActivity(Activity, 0,
                 new Intent(Activity, typeof(MainActivity))
                     .AddFlags(ActivityFlags.NoAnimation),
                 PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Mutable);
-
-        private PendingIntent UponNotificationDismissedIntent()
-        {
-            var notificationDissmissedActivity = new OnNotificationDismissedService();
-            return PendingIntent.GetBroadcast(notificationDissmissedActivity, 0,
-                new Intent(notificationDissmissedActivity, typeof(OnNotificationDismissedService)),
-                PendingIntentFlags.OneShot);
-        }
-
-    }
-    [Activity(Name = "todoApp.bomie.OnNotificationDimissedActivity")]
-    public class OnNotificationDismissedService  : Activity
-    {
-        public override void OnCreate(Bundle? savedInstanceState, PersistableBundle? persistentState)
-        {
-            base.OnCreate(savedInstanceState, persistentState); 
-            MainActivity.NotificationHandler.SendPersistentNotification("Dont dissmiss me :(", TodoAppNotificationChannel.ForegroundServiceNotificationId);
-
-        }
-
     }
 
     public enum TodoAppNotificationChannel

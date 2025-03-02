@@ -25,12 +25,6 @@ public class MainActivity : MauiAppCompatActivity
         //TODO
         //Setup nosql database and cache
     }
-
-    protected override void OnNewIntent(Intent? intent)
-    {
-        base.OnNewIntent(intent);
-    }
-
     #region Permissions
 
     private async Task GetRequiredPermission<T>() where T : Permissions.BasePermission, new()

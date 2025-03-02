@@ -31,7 +31,7 @@ namespace TodoApp.Platforms.Android
                 {
                     MainActivity.NotificationHandler.SendNotification(MainActivity.NotificationHandler.GetDefaultNotificationBuilder("sending warning ").Build(), TodoAppNotificationChannel.WarningNotificationId);
                 }
-                MainActivity.NotificationHandler.SendPersistentNotification($"Got to count {count}", TodoAppNotificationChannel.ForegroundServiceNotificationId);
+                MainActivity.NotificationHandler.SendNotification($"Got to count {count}", TodoAppNotificationChannel.ForegroundServiceNotificationId);
             }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
             return StartCommandResult.Sticky;
         }
