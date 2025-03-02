@@ -18,7 +18,7 @@ namespace TodoApp.Platforms.Android
             AndroidManager = manager;
             Activity = activity;
             if (manager.GetNotificationChannel(NotificationChannelId) == null)
-                manager.CreateNotificationChannel(new NotificationChannel(NotificationChannelId, NotificationChannelName, NotificationImportance.Low));
+                manager.CreateNotificationChannel(new NotificationChannel(NotificationChannelId, NotificationChannelName, NotificationImportance.Min));
         }
 
         public void SendNotification(string notificationText) =>
@@ -38,7 +38,8 @@ namespace TodoApp.Platforms.Android
                 .SetContentIntent(GetNotificationIntent())
                 .SetSmallIcon(IconId)
                 .SetOnlyAlertOnce(true)
-                .SetPriority(NotificationCompat.PriorityDefault)
+                .SetSilent(true)
+                .SetPriority(NotificationCompat.PriorityMin)
                 .SetCategory(NotificationCompat.CategoryStatus);
 
         public NotificationCompat.Builder GetDefaultNotificationBuilder() =>
