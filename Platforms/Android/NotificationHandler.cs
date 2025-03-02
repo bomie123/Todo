@@ -18,7 +18,7 @@ namespace TodoApp.Platforms.Android
             AndroidManager = manager;
             Activity = activity;
             if (manager.GetNotificationChannel(NotificationChannelId) == null)
-                manager.CreateNotificationChannel(new NotificationChannel(NotificationChannelId, NotificationChannelName, NotificationImportance.Min));
+                manager.CreateNotificationChannel(new NotificationChannel(NotificationChannelId, NotificationChannelName, NotificationImportance.Default));
         }
 
 
@@ -51,7 +51,6 @@ namespace TodoApp.Platforms.Android
                 .SetContentText(notificationText)
                 .SetContentIntent(OpenMainActivityPageIntent())
                 .SetSmallIcon(IconId)
-                .SetOnlyAlertOnce(true)
                 .SetPriority(NotificationCompat.PriorityDefault)
                 .SetCategory(NotificationCompat.CategoryStatus);
 
@@ -65,26 +64,8 @@ namespace TodoApp.Platforms.Android
                     .AddFlags(ActivityFlags.NoAnimation),
                 PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Mutable);
 
-        private PendingIntent UponNotificationDismissedIntent()
-        {
-            var notificationDissmissedActivity = new OnNotificationDismissedService();
-            return PendingIntent.GetBroadcast(notificationDissmissedActivity, 0,
-                new Intent(notificationDissmissedActivity, typeof(OnNotificationDismissedService)),
-                PendingIntentFlags.OneShot);
-        }
-
     }
-    [Activity(Name = "todoApp.bomie.OnNotificationDimissedActivity")]
-    public class OnNotificationDismissedService  : Activity
-    {
-        public override void OnCreate(Bundle? savedInstanceState, PersistableBundle? persistentState)
-        {
-            base.OnCreate(savedInstanceState, persistentState); 
-            MainActivity.NotificationHandler.SendPersistentNotification("Dont dissmiss me :(", TodoAppNotificationChannel.ForegroundServiceNotificationId);
-
-        }
-
-    }
+ 
 
     public enum TodoAppNotificationChannel
     {

@@ -35,10 +35,17 @@ public class MainActivity : MauiAppCompatActivity
 
     private async Task GetRequiredPermission<T>() where T : Permissions.BasePermission, new()
     {
-
-        if (await Permissions.CheckStatusAsync<T>() != PermissionStatus.Granted)
+        while (await Permissions.CheckStatusAsync<T>() != PermissionStatus.Granted)
         {
-            while (await Permissions.RequestAsync<T>() != PermissionStatus.Granted) { }
+            try
+            {
+                Permissions.RequestAsync<T>().Wait(TimeSpan.FromSeconds(1));
+            }
+            catch (Exception ex)
+            {
+                //permission request never returns, so just wait a second
+                Thread.Sleep(1000);
+            }
         }
     }
     #endregion
