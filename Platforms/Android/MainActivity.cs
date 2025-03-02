@@ -2,8 +2,6 @@
 using Android.Content;
 using Android.Content.PM;
 using Android.OS;
-using AndroidX.Core.App;
-using System.Diagnostics;
 using TodoApp.Platforms.Android;
 
 namespace TodoApp;
