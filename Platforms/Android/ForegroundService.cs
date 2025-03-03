@@ -32,7 +32,7 @@ namespace TodoApp.Platforms.Android
                     MainActivity.NotificationHandler.SendNotification(MainActivity.NotificationHandler.GetDefaultNotificationBuilder("sending warning ").Build(), TodoAppNotificationChannel.WarningNotificationId);
                 }
                 MainActivity.NotificationHandler.SendPersistentNotification($"Got to count {count}", TodoAppNotificationChannel.ForegroundServiceNotificationId);
-            }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+            }, null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
             return StartCommandResult.Sticky;
         }
         public static int count { get; set; }
