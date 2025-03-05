@@ -33,8 +33,6 @@ namespace TodoApp.Helpers
 
         #endregion
 
-        private readonly static Func<PropertyInfo, bool> SearchFunctionIgnoringRequiredFields =
-            x => x.GetCustomAttribute<DatabaseIgnoreAttribute>() == null;
         private static List<string> CreatedTables = new List<string>();
         public static List<T> GetData<T>() where T : BaseDataModel
         {
@@ -51,6 +49,8 @@ namespace TodoApp.Helpers
         }
 
         #region Table Helpers
+        private readonly static Func<PropertyInfo, bool> SearchFunctionIgnoringRequiredFields =
+            x => x.GetCustomAttribute<DatabaseIgnoreAttribute>() == null;
 
         private static string GetTableName<T>() =>
             typeof(T).GetCustomAttribute<TableNameAttribute>() == null
@@ -79,7 +79,14 @@ namespace TodoApp.Helpers
                         z.ColumnName.Equals(x.Name, StringComparison.CurrentCultureIgnoreCase))).ToList();
                 if (missingColumns.Any())
                 {
+                    var sql = $"ALTER TABLE {GetTableName<T>()} ";
+                    foreach (var missingColumn in missingColumns)
+                    {
+                        sql += $"ADD COLUMN {missingColumn.Name} {ConvertPropTypeToSqlLiteType(missingColumn)} ";
+                    }
 
+                    sql += ";";
+                    ExecuteNonQuery(sql);
                 }
             }
 

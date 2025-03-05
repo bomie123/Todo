@@ -9,5 +9,6 @@ namespace TodoApp.Models
 {
     class TodoRecord : BaseDataModel
     {
+        public string Description { get; set; }
     }
 }

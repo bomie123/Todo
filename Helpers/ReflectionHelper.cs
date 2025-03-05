@@ -23,7 +23,7 @@ namespace TodoApp.Helpers
             => GetPropertyInfos(typeToSearch, func, DefaultBindingFlags);
 
         public static List<PropertyInfo> GetPropertyInfos(Type typeToSearch, Func<PropertyInfo, bool> func, BindingFlags flags)
-            => typeToSearch.GetType().GetProperties(DefaultBindingFlags)
+            => typeToSearch.GetProperties(DefaultBindingFlags)
                 .Where(func).ToList();
     }
 }
