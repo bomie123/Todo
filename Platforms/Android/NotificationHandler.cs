@@ -21,9 +21,14 @@ namespace TodoApp.Platforms.Android
                 manager.CreateNotificationChannel(new NotificationChannel(NotificationChannelId, NotificationChannelName, NotificationImportance.Default));
         }
 
+        private string PersistentNotificationText { get; set; }
+        public void UpdatePersistentNotification(string notificationText)
+        {
+            PersistentNotificationText = notificationText;
+            SendNotification(GetDefaultPersistentNotificationBuilder(PersistentNotificationText).Build(), TodoAppNotificationChannel.ForegroundServiceNotificationId);
+        }
 
-        public void SendPersistentNotification(string notificationText, TodoAppNotificationChannel channel) =>
-            SendNotification(GetDefaultPersistentNotificationBuilder(notificationText).Build(), channel);
+        public void RestorePersistentNotification() => UpdatePersistentNotification(PersistentNotificationText);
 
         public void SendNotification(Notification notification, TodoAppNotificationChannel channel) =>
         AndroidManager.Notify((int)channel, notification);
@@ -39,7 +44,7 @@ namespace TodoApp.Platforms.Android
                 .SetContentIntent(OpenMainActivityPageIntent())
                 .SetSmallIcon(IconId)
                 .SetOnlyAlertOnce(true)
-                .SetDeleteIntent(OpenMainActivityPageIntent())
+                .SetDeleteIntent(GetPendingIntentForBroadcastType<OnDismissNotificationRecieved>(OnDismissNotificationRecieved.Action))
                 .SetOngoing(true)
                 .SetSilent(true)
                 .SetPriority(NotificationCompat.PriorityMin)
@@ -64,8 +69,27 @@ namespace TodoApp.Platforms.Android
                     .AddFlags(ActivityFlags.NoAnimation),
                 PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Mutable);
 
+        private PendingIntent GetPendingIntentForBroadcastType<T>(string action) where T : BroadcastReceiver
+        {
+            var actionIntent = new Intent(Activity, typeof(T));
+            actionIntent.SetAction(action);
+            var pendingActionIntent = PendingIntent.GetBroadcast(Activity, 0, actionIntent,
+                PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
+            return pendingActionIntent;
+        }
+
     }
- 
+
+    [BroadcastReceiver(Enabled = true, Exported = false)]
+    [IntentFilter(new[] {Action})]
+    public class OnDismissNotificationRecieved : BroadcastReceiver
+    {
+        public const string Action = $"TodoApp.Action.DismissNotification";
+        public override void OnReceive(Context? context, Intent? intent)
+        {
+            MainActivity.NotificationHandler.RestorePersistentNotification();
+        }
+    }
 
     public enum TodoAppNotificationChannel
     {
