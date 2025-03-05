@@ -86,17 +86,15 @@ namespace TodoApp.Helpers
                     }
 
                     sql += ";";
-                    ExecuteNonQuery(sql);
+                    if (!ExecuteNonQuery(sql))
+                    {
+#if ANDROID
+                        MainActivity.NotificationHandler.SendNotification(MainActivity.NotificationHandler.GetDefaultNotificationBuilder($"Failed to update the database with new changes. Please clear the cache of this app and try again").Build(), TodoAppNotificationChannel.WarningNotificationId);
+#endif
+                    }
                 }
             }
 
-            //if table matches, but the columns dont, attempt to insert them
-            if (false)
-            {
-#if ANDROID
-                MainActivity.NotificationHandler.SendNotification(MainActivity.NotificationHandler.GetDefaultNotificationBuilder($"Failed to update the database with new changes. Please clear the cache of this app and try again").Build(), TodoAppNotificationChannel.WarningNotificationId);
-#endif
-            }
             CreatedTables.Add(GetTableName<T>());
 
         }

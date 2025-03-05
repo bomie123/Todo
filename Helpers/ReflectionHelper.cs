@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Caching;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,18 +13,26 @@ namespace TodoApp.Helpers
         public static BindingFlags DefaultBindingFlags =
             BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
+        public static CacheHelper cacheHelper { get; set; } = new CacheHelper("ReflectionHelper");
+  
+
         public static MethodInfo GetMethodTyped(string nameOfMethod, Type typeToSearch, Type typeToMakeTheMethod)
+        => cacheHelper.GetOrCreate<MethodInfo>($"{nameOfMethod}{typeToSearch.Name}{typeToMakeTheMethod.Name}", () =>
         {
             var method = typeToSearch.GetMethods(DefaultBindingFlags).FirstOrDefault(x =>
                 x.Name.Equals(nameOfMethod, StringComparison.CurrentCultureIgnoreCase));
             return method.MakeGenericMethod(typeToMakeTheMethod);
-        }
+        });
 
         public static List<PropertyInfo> GetPropertyInfos(Type typeToSearch, Func<PropertyInfo, bool> func)
             => GetPropertyInfos(typeToSearch, func, DefaultBindingFlags);
 
         public static List<PropertyInfo> GetPropertyInfos(Type typeToSearch, Func<PropertyInfo, bool> func, BindingFlags flags)
-            => typeToSearch.GetProperties(DefaultBindingFlags)
-                .Where(func).ToList();
+            => cacheHelper.GetOrCreate($"propertyInfo-{typeToSearch.Name}", ()=>
+            {
+                return typeToSearch.GetProperties(flags).Where(func).ToList();
+            });
+
+
     }
 }
