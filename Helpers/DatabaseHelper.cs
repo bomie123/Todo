@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Runtime.Caching;
 using System.Text;
 using Microsoft.Data.Sqlite;
@@ -34,18 +35,40 @@ namespace TodoApp.Helpers
         #endregion
 
         private static List<string> CreatedTables = new List<string>();
-        public static List<T> GetData<T>() where T : BaseDataModel
+        public static List<T> GetData<T>(string whereClause) where T : BaseDataModel, new()
         {
-            try
-            {
-                CreateTableIfRequired<T>();
-                return null;
+            CreateTableIfRequired<T>();
+            return GetDataFromSqlCommand<T>($"{GetSelectQuery<T>()} where {whereClause}");
+        }
 
-            }
-            catch (Exception ex)
+        public static List<T> GetData<T>() where T : BaseDataModel, new() => GetData<T>("true");
+
+        public static T? GetData<T>(long id) where T : BaseDataModel, new()
+        {
+            CreateTableIfRequired<T>();
+            return GetDataFromSqlCommand<T>($"{GetSelectQuery<T>()} where id = {id}").FirstOrDefault();
+        }
+
+        public static void UpsertData<T>(T data) where T : BaseDataModel, new()
+        {
+            CreateTableIfRequired<T>();
+            if (data.Id <= 0)
+                ExecuteNonQuery(GetCreateStatement(data));
+            else
+                ExecuteNonQuery(GetUpdateStatement(data));
+        }
+        public static T? UpsertDataWithReturn<T>(T data) where T : BaseDataModel, new()
+        {
+            var id = data.Id;
+            if (data.Id <= 0)
             {
-                throw;
+                //create record, grab the id
             }
+            else
+            {
+                UpsertData(data);
+            }
+            return GetData<T>(id);
         }
 
         #region Table Helpers
@@ -74,7 +97,7 @@ namespace TodoApp.Helpers
             else
             {
                 var schema = GetCommand($"Select * from {GetTableName<T>()} LIMIT 1").ExecuteReader().GetColumnSchema();
-                var missingColumns = ReflectionHelper.GetPropertyInfos(typeof(T), SearchFunctionIgnoringRequiredFields, BindingFlags.Public|BindingFlags.Instance)
+                var missingColumns = ReflectionHelper.GetPropertyInfos(typeof(T), SearchFunctionIgnoringRequiredFields, BindingFlags.Public | BindingFlags.Instance)
                     .Where(x => !schema.Any(z =>
                         z.ColumnName.Equals(x.Name, StringComparison.CurrentCultureIgnoreCase))).ToList();
                 if (missingColumns.Any())
@@ -120,7 +143,7 @@ namespace TodoApp.Helpers
         private static string ConvertPropTypeToSqlLiteType(PropertyInfo prop)
         {
             //https://learn.microsoft.com/en-us/dotnet/standard/data/sqlite/types
-            if (new List<Type>() { typeof(string), typeof(DateTime), typeof(TimeSpan) , typeof(decimal)}.Any(z => z == prop.PropertyType))
+            if (new List<Type>() { typeof(string), typeof(DateTime), typeof(TimeSpan), typeof(decimal) }.Any(z => z == prop.PropertyType))
             {
                 return "TEXT";
             }
@@ -133,7 +156,7 @@ namespace TodoApp.Helpers
             {
                 return "INTEGER";
             }
-            if (new List<Type>() { typeof(double)  }.Any(z => z == prop.PropertyType))
+            if (new List<Type>() { typeof(double) }.Any(z => z == prop.PropertyType))
             {
                 return "REAL";
             }
@@ -146,6 +169,38 @@ namespace TodoApp.Helpers
 
 
         #region Sql Helpers
+
+        private static List<PropertyInfo> GetCreateUpdateApplicableProperties<T>() =>
+            typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(x => !x.Name.Equals("id", StringComparison.CurrentCultureIgnoreCase)).ToList();
+
+        private static string GetUpdateStatement<T>(T instance) where T : BaseDataModel, new()
+            => $"update {GetTableName<T>()} set" +
+               $"{string.Join(',', GetCreateUpdateApplicableProperties<T>().Select(x => $"{x.Name} = {GetStringInCorrectWrappers(x.GetValue(instance).ToString(), x.PropertyType)}"))}"
+               + $" where id = {instance.Id}";
+
+        private static string GetCreateStatement<T>(T instance)
+            => $"insert into {GetTableName<T>()} " +
+                      $"({string.Join(',', GetCreateUpdateApplicableProperties<T>().Select(x => $"{x.Name}"))})" +
+                      $" values ({string.Join(',', GetCreateUpdateApplicableProperties<T>().Select(x => GetStringInCorrectWrappers(x.GetValue(instance).ToString(), x.PropertyType)))})";
+
+        private static string GetStringInCorrectWrappers(string value, Type propertyType)
+        {
+            if (new List<Type>() { typeof(string), typeof(DateTime), typeof(TimeSpan), typeof(decimal) }.Any(z => z == propertyType))
+            {
+                return $"\"{value}\"";
+            }
+            if (new List<Type>() { typeof(byte[]), typeof(bool), typeof(byte), typeof(int), typeof(long), typeof(double) }.Any(z => z == propertyType))
+            {
+                return value;
+            }
+
+
+            throw new Exception($"Couldnt find the correct wrappers for type {propertyType.Name}");
+        }
+
+        private static string GetSelectQuery<T>() =>
+            $"select {string.Join(',', typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance).Select(x => $"{x.Name}"))} from {GetTableName<T>()}";
         private static List<T> GetDataFromSqlCommand<T>(string sqlToRun) where T : new()
         {
             Log.Warning($"Executing Query - {sqlToRun}");
@@ -168,9 +223,9 @@ namespace TodoApp.Helpers
                     {
                         column.ColumnOrdinal
                     });
-                    property.SetValue(instance,valueToAdd );
+                    property.SetValue(instance, valueToAdd);
                 }
-                returnVal.Add(instance );
+                returnVal.Add(instance);
             }
 
             return returnVal;

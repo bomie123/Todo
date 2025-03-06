@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Core;
+using TodoApp.Helpers;
+using TodoApp.Models;
 
 namespace TodoApp;
 
@@ -20,6 +22,11 @@ public static class MauiProgram
 			{
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
 			});
+		DatabaseHelper.UpsertData(new TodoRecord()
+        {
+			Description = "Test"
+        });
+        var test = DatabaseHelper.GetData<TodoRecord>("true");
 
 		builder.Services.AddMauiBlazorWebView();
 
