@@ -1,6 +1,4 @@
-﻿using KotlinX.Serialization.Descriptors;
-using TodoApp.Models.DatabaseModels;
-using TodoApp.Models.DatabaseModels.Attributes;
+﻿using TodoApp.Models.DatabaseModels;
 using TodoApp.Models.DataModels.Enums;
 
 namespace TodoApp.Models.DataModels

@@ -1,7 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using Serilog;
-using TodoApp.Helpers;
-using TodoApp.Models.DataModels;
 
 namespace TodoApp;
 
