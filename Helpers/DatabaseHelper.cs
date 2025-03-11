@@ -25,13 +25,16 @@ namespace TodoApp.Helpers
             return _internalDbConnection;
         }
 
+        private static readonly string DefaultWhereClause = "active=true";
+
         #endregion
 
 
         public static List<T> GetData<T>(params string[] whereClause) where T : BaseDataModel, new()
         {
             CreateTableIfRequired<T>();
-            return GetDataFromSqlCommand<T>($"{GetSelectQuery<T>()} where {string.Join(",",whereClause)}");
+            
+            return GetDataFromSqlCommand<T>($"{GetSelectQuery<T>()} where {string.Join(",", whereClause)}");
         }
 
         public static List<T> GetData<T>() where T : BaseDataModel, new() => GetData<T>("true");
@@ -39,7 +42,7 @@ namespace TodoApp.Helpers
         public static List<T?> GetData<T>(params long[] id) where T : BaseDataModel, new()
         {
             CreateTableIfRequired<T>();
-            return id.Select(x=> GetDataFromSqlCommand<T>($"{GetSelectQuery<T>()} where {SqlHelpers.EqualToo(nameof(BaseDataModel.Id), x)}").FirstOrDefault()).ToList();
+            return id.Select(x => GetDataFromSqlCommand<T>($"{GetSelectQuery<T>()} where {SqlHelpers.EqualToo(nameof(BaseDataModel.Id), x)}").FirstOrDefault()).ToList();
         }
 
         public static T? SelectData<T>(string whereClause) where T : BaseDataModel, new()
@@ -78,22 +81,32 @@ namespace TodoApp.Helpers
             }
             return returnList;
         }
-        
+
 
         #region Table Helpers
-        private readonly static Func<PropertyInfo, bool> SearchFunctionIgnoringRequiredFields =
-            x => x.GetCustomAttribute<DatabaseIgnoreAttribute>() == null;
 
-        private static string GetTableName<T>() =>
-            typeof(T).GetCustomAttribute<TableNameAttribute>() == null
-            ? typeof(T).Name
-            : typeof(T).GetCustomAttribute<TableNameAttribute>().TableName;
+        private static List<string> EnrichWhereClause(string[] whereStrings)
+        {
+            var returnVal = new List<string>(whereStrings);
+            returnVal.Add(DefaultWhereClause);
+            return returnVal;
+        }
+        private static List<PropertyInfo> GetRelevantProperties(Type type)=> ReflectionHelper.GetPropertyInfos(type, 
+            x => x.GetCustomAttribute<DatabaseIgnoreAttribute>() == null && x.GetCustomAttribute<AutoPopulateAttribute>() == null, BindingFlags.Public | BindingFlags.Instance).ToList();
+           
+        private static string GetTableName(Type type) =>
+            type.GetCustomAttribute<TableNameAttribute>() == null
+                ? type.Name
+                : type.GetCustomAttribute<TableNameAttribute>().TableName;
+
+        private static string GetTableName<T>() => GetTableName(typeof(T));
 
         private class ColumnNameList
         {
             public string Name { get; set; }
         }
         private static List<string> CreatedTables = new List<string>();
+        
 
         private static void CreateTableIfRequired<T>()
         {
@@ -108,8 +121,7 @@ namespace TodoApp.Helpers
             else
             {
                 var schema = GetCommand($"Select * from {GetTableName<T>()} LIMIT 1").ExecuteReader().GetColumnSchema();
-                var missingColumns = ReflectionHelper.GetPropertyInfos(typeof(T), SearchFunctionIgnoringRequiredFields, BindingFlags.Public | BindingFlags.Instance)
-                    .Where(x => !schema.Any(z =>
+                var missingColumns = GetRelevantProperties(typeof(T)).Where(x => !schema.Any(z =>
                         z.ColumnName.Equals(x.Name, StringComparison.CurrentCultureIgnoreCase))).ToList();
                 if (missingColumns.Any())
                 {
@@ -135,18 +147,32 @@ namespace TodoApp.Helpers
         private static string GetTableCreateStatement<T>()
         {
             var sql = $"CREATE TABLE IF NOT EXISTS {GetTableName<T>()} (";
-            foreach (var prop in ReflectionHelper.GetPropertyInfos(typeof(T), SearchFunctionIgnoringRequiredFields, BindingFlags.Public | BindingFlags.Instance))
+            var fields = GetRelevantProperties(typeof(T));
+            foreach (var prop in fields)
             {
                 if (prop.Name.Equals("id", StringComparison.CurrentCultureIgnoreCase))
                 {
                     sql += $"id INTEGER PRIMARY KEY AUTOINCREMENT,";
                     continue;
                 }
-
+                //this is a foreign key, setup the constraint 
+                if (prop.GetCustomAttribute<ForeignKeyAttribute>() != null)
+                {
+                    sql += $"{prop.Name} {ConvertPropTypeToSqlLiteType(prop)} , ";
+                }
                 sql += $"{prop.Name} {ConvertPropTypeToSqlLiteType(prop)}, ";
             }
 
-            return sql.TrimEnd(" ,".ToCharArray()) + ");";
+            foreach (var field in fields.Where(x => x.GetCustomAttributes<ForeignKeyAttribute>() != null))
+            {
+                var attribute = field.GetCustomAttribute<ForeignKeyAttribute>();
+                sql += $"FOREIGN KEY ({field.Name}) " +
+                       $"REFERENCES {GetTableName(attribute.Type)} (id)";
+            }
+
+            sql = sql.TrimEnd(", ".ToCharArray());
+
+            return sql + ");";
 
         }
 
@@ -196,7 +222,7 @@ namespace TodoApp.Helpers
                       $"({string.Join(',', GetCreateUpdateApplicableProperties<T>().Select(x => $"{x.Name}"))})" +
                       $" values ({string.Join(',', GetCreateUpdateApplicableProperties<T>().Select(x => SqlHelpers.GetStringInCorrectWrappers(x.GetValue(instance).ToString(), x.PropertyType)))})";
 
-  
+
 
         private static string GetSelectQuery<T>() =>
             $"select {string.Join(',', typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance).Select(x => $"{x.Name}"))} from {GetTableName<T>()}";
@@ -210,7 +236,7 @@ namespace TodoApp.Helpers
             while (reader.Read())
             {
                 var instance = new T();
-                foreach (var column in columnSchema.Where(x=> x.ColumnOrdinal.HasValue))
+                foreach (var column in columnSchema.Where(x => x.ColumnOrdinal.HasValue))
                 {
                     var property = typeof(T).GetProperties().FirstOrDefault(x =>
                         x.Name.Equals(column.BaseColumnName, StringComparison.CurrentCultureIgnoreCase));
@@ -228,6 +254,22 @@ namespace TodoApp.Helpers
                 }
                 returnVal.Add(instance);
             }
+
+            var foreignKeyProperties = GetRelevantProperties(typeof(T))
+                .Where(x => x.GetCustomAttribute<ForeignKeyAttribute>() != null);
+            //foreach table we're linked with 
+            foreach (var foreignKey in foreignKeyProperties)
+            {
+                //get all the properties should be auto populated on this foreign key
+                foreach (var property in GetRelevantProperties(typeof(T)).Where(x =>
+                             x.GetCustomAttribute<AutoPopulateAttribute>() != null &&
+                             x.GetCustomAttribute<AutoPopulateAttribute>().Type ==
+                             foreignKey.GetCustomAttribute<ForeignKeyAttribute>().Type))
+                {
+
+                }
+            }
+            
 
             return returnVal;
         }

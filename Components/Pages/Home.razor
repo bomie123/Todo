@@ -2,6 +2,7 @@
 @using TodoApp.Helpers
 @using TodoApp.Models
 @using TodoApp.Models.DataModels
+@using TodoApp.Models.DataModels.Enums
 
 <h1>Hello, world!</h1>
 
@@ -12,15 +13,16 @@ Welcome to your new app.
 
     private void TestDatabase()
     {
-        var allRecords =  DatabaseHelper.GetData<TodoCreationRecord>();
-        var newRecord = DatabaseHelper.UpsertDataWithReturn(new TodoCreationRecord()
+        var createRecord = new TodoCreationRecord()
         {
-            Active = true,
-            Description = "test"
-        }).FirstOrDefault();
-        newRecord.Description = "test2";
-        DatabaseHelper.UpsertData(newRecord);
-        var updatedRecord = DatabaseHelper.SelectData<TodoCreationRecord>(newRecord.Id);
+            RepeatInterval = RepeatInterval.Daily,
+            DaysBeforeReminder = 0,
+            LastNotifyDateTime = DateTime.MinValue,
+            RepeatFrequency = 1,
+            TodoText = "Walk the dog",
+            Active = true
+        };
+
 
     }
 }
