@@ -13,16 +13,33 @@ Welcome to your new app.
 
     private void TestDatabase()
     {
-        var createRecord = new TodoCreationRecord()
+        try
         {
-            RepeatInterval = RepeatInterval.Daily,
-            DaysBeforeReminder = 0,
-            LastNotifyDateTime = DateTime.MinValue,
-            RepeatFrequency = 1,
-            TodoText = "Walk the dog",
-            Active = true
-        };
+            var createRecord = new TodoCreationRecord()
+            {
+                RepeatInterval = RepeatInterval.Daily,
+                DaysBeforeReminder = 0,
+                LastNotifyDateTime = DateTime.MinValue,
+                RepeatFrequency = 1,
+                TodoText = "Walk the dog",
+                Active = true,
+                HasToBeDoneOnDate = false
+            };
+            var upsertedRecord = DatabaseHelper.UpsertDataWithReturn(createRecord);
+            DatabaseHelper.UpsertData(new TodoRecord()
+            {
+                Completed = false,
+                TodoCreatorId = upsertedRecord.First().Id,
+                Active = true,
+            });
+            var todoRecords = DatabaseHelper.GetData<TodoRecord>();
 
+
+        }
+        catch (Exception ex)
+        {
+
+        }
 
     }
 }

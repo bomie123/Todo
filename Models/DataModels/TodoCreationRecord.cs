@@ -13,11 +13,13 @@ namespace TodoApp.Models.DataModels
         #region Notify
         public DateTime LastNotifyDateTime { get; set; }
         public int DaysBeforeReminder { get; set; }
+        public bool MustBeDoneOnDeadline { get; set; }
         #endregion
         
         #region Repeat
         public RepeatInterval RepeatInterval { get; set; }
         public int RepeatFrequency { get; set; }
         #endregion
+
     }
 }

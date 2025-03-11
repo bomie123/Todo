@@ -16,7 +16,7 @@ namespace TodoApp.Helpers
             {
                 return $"\"{value}\"";
             }
-            if (new List<Type>() { typeof(byte[]), typeof(bool), typeof(byte), typeof(int), typeof(long), typeof(double) }.Any(z => z == propertyType))
+            if (new List<Type>() { typeof(byte[]), typeof(bool), typeof(byte), typeof(int), typeof(long), typeof(double) }.Any(z => z == propertyType || propertyType.IsEnum))
             {
                 return value;
             }

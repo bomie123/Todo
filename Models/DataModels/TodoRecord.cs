@@ -10,13 +10,22 @@ namespace TodoApp.Models.DataModels
 {
     class TodoRecord : BaseDataModel
     {
-        public string TodoText { get; set; }
+        #region Foreign fields
         [ForeignKey(typeof(TodoCreationRecord))]
         public long TodoCreatorId { get; set; }
         [AutoPopulate(typeof(TodoCreationRecord))]
         public TodoCreationRecord TodoCreator { get; set; }
-        public long TodoCreationRecordId { get; set; }
+
+        #endregion
+
+        #region Calculated
+        public string TodoText
+        {
+            get => TodoCreator?.TodoText??"";
+        }
+        #endregion
+
+        public DateTime Deadline { get; set; }
         public bool Completed { get; set; }
-        public bool MustBeDoneToday { get; set; }
     }
 }

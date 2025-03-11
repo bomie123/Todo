@@ -159,11 +159,12 @@ namespace TodoApp.Helpers
                 if (prop.GetCustomAttribute<ForeignKeyAttribute>() != null)
                 {
                     sql += $"{prop.Name} {ConvertPropTypeToSqlLiteType(prop)} , ";
+                    continue;
                 }
                 sql += $"{prop.Name} {ConvertPropTypeToSqlLiteType(prop)}, ";
             }
 
-            foreach (var field in fields.Where(x => x.GetCustomAttributes<ForeignKeyAttribute>() != null))
+            foreach (var field in fields.Where(x => x.GetCustomAttribute<ForeignKeyAttribute>() != null))
             {
                 var attribute = field.GetCustomAttribute<ForeignKeyAttribute>();
                 sql += $"FOREIGN KEY ({field.Name}) " +
@@ -188,7 +189,7 @@ namespace TodoApp.Helpers
                 return "BLOB";
             }
 
-            if (new List<Type>() { typeof(bool), typeof(byte), typeof(int), typeof(long) }.Any(z => z == prop.PropertyType))
+            if (new List<Type>() { typeof(bool), typeof(byte), typeof(int), typeof(long) }.Any(z => z == prop.PropertyType|| prop.PropertyType.IsEnum))
             {
                 return "INTEGER";
             }
@@ -210,22 +211,31 @@ namespace TodoApp.Helpers
 
         private static List<PropertyInfo> GetCreateUpdateApplicableProperties<T>() =>
             typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(x => !x.Name.Equals("id", StringComparison.CurrentCultureIgnoreCase)).ToList();
+                .Where(x => !x.Name.Equals("id", StringComparison.CurrentCultureIgnoreCase) && x.GetCustomAttribute<AutoPopulateAttribute>() == null).ToList();
 
         private static string GetUpdateStatement<T>(T instance) where T : BaseDataModel, new()
             => $"update {GetTableName<T>()} set " +
-               string.Join(',', GetCreateUpdateApplicableProperties<T>().Select(x => $"{x.Name} = {SqlHelpers.GetStringInCorrectWrappers(x.GetValue(instance).ToString(), x.PropertyType)}"))
+               string.Join(',', GetCreateUpdateApplicableProperties<T>().Select(x => $"{x.Name} = {SqlHelpers.GetStringInCorrectWrappers(GetColumnValue(x.GetValue(instance)), x.PropertyType)}"))
                + $" where {SqlHelpers.EqualToo(nameof(BaseDataModel.Id), instance.Id)}";
 
         private static string GetCreateStatement<T>(T instance)
             => $"insert into {GetTableName<T>()} " +
                       $"({string.Join(',', GetCreateUpdateApplicableProperties<T>().Select(x => $"{x.Name}"))})" +
-                      $" values ({string.Join(',', GetCreateUpdateApplicableProperties<T>().Select(x => SqlHelpers.GetStringInCorrectWrappers(x.GetValue(instance).ToString(), x.PropertyType)))})";
+                      $" values ({string.Join(',', GetCreateUpdateApplicableProperties<T>().Select(x => SqlHelpers.GetStringInCorrectWrappers(GetColumnValue(x.GetValue(instance)), x.PropertyType)))})";
 
+        private static string GetColumnValue(object? instance)
+        {
+            if (instance == null) return "";
+            if (instance.GetType().IsEnum)
+            {
+                return "" + ((int)instance);
+            }
 
+            return instance.ToString();
+        }
 
         private static string GetSelectQuery<T>() =>
-            $"select {string.Join(',', typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance).Select(x => $"{x.Name}"))} from {GetTableName<T>()}";
+            $"select {string.Join(',', typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(x=> x.GetCustomAttribute<AutoPopulateAttribute>() == null).Select(x => $"{x.Name}"))} from {GetTableName<T>()}";
         private static List<T> GetDataFromSqlCommand<T>(string sqlToRun) where T : new()
         {
             Log.Warning($"Executing Query - {sqlToRun}");
@@ -250,7 +260,8 @@ namespace TodoApp.Helpers
                     {
                         column.ColumnOrdinal
                     });
-                    property.SetValue(instance, valueToAdd);
+                    if (property.GetSetMethod() != null)
+                        property.SetValue(instance, valueToAdd);
                 }
                 returnVal.Add(instance);
             }
@@ -260,13 +271,21 @@ namespace TodoApp.Helpers
             //foreach table we're linked with 
             foreach (var foreignKey in foreignKeyProperties)
             {
-                //get all the properties should be auto populated on this foreign key
-                foreach (var property in GetRelevantProperties(typeof(T)).Where(x =>
-                             x.GetCustomAttribute<AutoPopulateAttribute>() != null &&
-                             x.GetCustomAttribute<AutoPopulateAttribute>().Type ==
-                             foreignKey.GetCustomAttribute<ForeignKeyAttribute>().Type))
-                {
 
+                //get all the properties should be auto populated on this foreign key
+                foreach (var property in typeof(T).GetProperties(ReflectionHelper.DefaultBindingFlags).Where(x => x.GetCustomAttribute<AutoPopulateAttribute>() != null &&
+                             x.GetCustomAttribute<AutoPopulateAttribute>().Type ==
+                             foreignKey.GetCustomAttribute<ForeignKeyAttribute>().Type ))
+                {
+                    foreach (var instance in returnVal.Where(x=> x != null))
+                    {
+                        var idToSearchFor = long.Parse(foreignKey.GetValue(instance).ToString());
+                        var typedMethodInstance = ReflectionHelper.GetMethodTyped(nameof(DatabaseHelper.SelectData), typeof(DatabaseHelper), property.PropertyType, new []{typeof(long)});
+                         property.SetValue(instance,typedMethodInstance.Invoke(null, new object[]
+                         {
+                             idToSearchFor
+                         }));
+                    }
                 }
             }
             
@@ -282,8 +301,17 @@ namespace TodoApp.Helpers
 
         private static bool ExecuteNonQuery(string sqlToRun)
         {
-            Log.Warning($"Executing SQL - {sqlToRun}");
-            return GetCommand(sqlToRun).ExecuteNonQuery() == 1;
+            try
+            {
+                Log.Warning($"Executing SQL - {sqlToRun}");
+                var result = GetCommand(sqlToRun).ExecuteNonQuery() == 1;
+                return result;
+
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
         #endregion
     }
