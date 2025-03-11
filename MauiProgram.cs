@@ -1,8 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Serilog;
-using Serilog.Core;
 using TodoApp.Helpers;
-using TodoApp.Models;
+using TodoApp.Models.DataModels;
 
 namespace TodoApp;
 
@@ -11,7 +10,6 @@ public static class MauiProgram
 	public static MauiApp CreateMauiApp()
 	{
 		var builder = MauiApp.CreateBuilder();
-		//TODO fix this
         Log.Logger = new LoggerConfiguration()
             .WriteTo.Console()
             .CreateLogger();
@@ -22,13 +20,8 @@ public static class MauiProgram
 			{
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
 			});
-		DatabaseHelper.UpsertData(new TodoRecord()
-        {
-			Description = "Test"
-        });
-        var test = DatabaseHelper.GetData<TodoRecord>("true");
 
-		builder.Services.AddMauiBlazorWebView();
+        builder.Services.AddMauiBlazorWebView();
 
 #if DEBUG
 		builder.Services.AddBlazorWebViewDeveloperTools();

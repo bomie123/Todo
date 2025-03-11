@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace TodoApp.Models.DatabaseModels
+﻿namespace TodoApp.Models.DatabaseModels
 {
     public abstract class BaseDataModel 
     {
         public long Id { get; set; }
         public long RowId { get; set; }
+        public bool Active { get; set; } = true;
     }
 }

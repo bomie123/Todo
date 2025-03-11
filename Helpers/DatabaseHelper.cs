@@ -1,18 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data.Common;
-using System.Linq;
+﻿using System.Data.Common;
+using System.Linq.Expressions;
 using System.Reflection;
-using System.Reflection.Emit;
-using System.Runtime.Caching;
-using System.Text;
 using Microsoft.Data.Sqlite;
 using Serilog;
 using TodoApp.Models.DatabaseModels;
 using TodoApp.Models.DatabaseModels.Attributes;
-#if ANDROID
 using TodoApp.Platforms.Android;
-#endif
 
 namespace TodoApp.Helpers
 {
@@ -34,42 +27,58 @@ namespace TodoApp.Helpers
 
         #endregion
 
-        private static List<string> CreatedTables = new List<string>();
-        public static List<T> GetData<T>(string whereClause) where T : BaseDataModel, new()
+
+        public static List<T> GetData<T>(params string[] whereClause) where T : BaseDataModel, new()
         {
             CreateTableIfRequired<T>();
-            return GetDataFromSqlCommand<T>($"{GetSelectQuery<T>()} where {whereClause}");
+            return GetDataFromSqlCommand<T>($"{GetSelectQuery<T>()} where {string.Join(",",whereClause)}");
         }
 
         public static List<T> GetData<T>() where T : BaseDataModel, new() => GetData<T>("true");
 
-        public static T? GetData<T>(long id) where T : BaseDataModel, new()
+        public static List<T?> GetData<T>(params long[] id) where T : BaseDataModel, new()
         {
             CreateTableIfRequired<T>();
-            return GetDataFromSqlCommand<T>($"{GetSelectQuery<T>()} where id = {id}").FirstOrDefault();
+            return id.Select(x=> GetDataFromSqlCommand<T>($"{GetSelectQuery<T>()} where {SqlHelpers.EqualToo(nameof(BaseDataModel.Id), x)}").FirstOrDefault()).ToList();
         }
 
-        public static void UpsertData<T>(T data) where T : BaseDataModel, new()
+        public static T? SelectData<T>(string whereClause) where T : BaseDataModel, new()
+            => GetData<T>(whereClause).FirstOrDefault();
+        public static T? SelectData<T>(long id) where T : BaseDataModel, new()
+            => GetData<T>(id).FirstOrDefault();
+
+
+        public static void UpsertData<T>(params T[] data) where T : BaseDataModel, new()
         {
             CreateTableIfRequired<T>();
-            if (data.Id <= 0)
-                ExecuteNonQuery(GetCreateStatement(data));
-            else
-                ExecuteNonQuery(GetUpdateStatement(data));
+            foreach (var record in data)
+            {
+                if (record.Id <= 0)
+                    ExecuteNonQuery(GetCreateStatement(record));
+                else
+                    ExecuteNonQuery(GetUpdateStatement(record));
+
+            }
         }
-        public static T? UpsertDataWithReturn<T>(T data) where T : BaseDataModel, new()
+        public static List<T?> UpsertDataWithReturn<T>(params T[] data) where T : BaseDataModel, new()
         {
-            var id = data.Id;
-            if (data.Id <= 0)
+            var returnList = new List<T?>();
+            foreach (var instance in data)
             {
-                //create record, grab the id
-            }
-            else
-            {
+                var id = instance.Id;
                 UpsertData(data);
+                if (instance.Id <= 0)
+                {
+                    var queryResult = GetCommand("SELECT last_insert_rowid()").ExecuteReader();
+                    queryResult.Read();
+                    id = queryResult.GetInt64(0);
+                }
+
+                returnList.AddRange(GetData<T>(id));
             }
-            return GetData<T>(id);
+            return returnList;
         }
+        
 
         #region Table Helpers
         private readonly static Func<PropertyInfo, bool> SearchFunctionIgnoringRequiredFields =
@@ -84,6 +93,8 @@ namespace TodoApp.Helpers
         {
             public string Name { get; set; }
         }
+        private static List<string> CreatedTables = new List<string>();
+
         private static void CreateTableIfRequired<T>()
         {
             if (CreatedTables.Any(z => z == GetTableName<T>()))
@@ -109,11 +120,10 @@ namespace TodoApp.Helpers
                     }
 
                     sql += ";";
+                    var result = ExecuteNonQuery(sql);
                     if (!ExecuteNonQuery(sql))
                     {
-#if ANDROID
                         MainActivity.NotificationHandler.SendNotification(MainActivity.NotificationHandler.GetDefaultNotificationBuilder($"Failed to update the database with new changes. Please clear the cache of this app and try again").Build(), TodoAppNotificationChannel.WarningNotificationId);
-#endif
                     }
                 }
             }
@@ -145,7 +155,7 @@ namespace TodoApp.Helpers
             //https://learn.microsoft.com/en-us/dotnet/standard/data/sqlite/types
             if (new List<Type>() { typeof(string), typeof(DateTime), typeof(TimeSpan), typeof(decimal) }.Any(z => z == prop.PropertyType))
             {
-                return "TEXT";
+                return "TEXT nocase";
             }
             if (new List<Type>() { typeof(byte[]) }.Any(z => z == prop.PropertyType))
             {
@@ -165,6 +175,8 @@ namespace TodoApp.Helpers
 
         }
 
+
+
         #endregion
 
 
@@ -175,29 +187,16 @@ namespace TodoApp.Helpers
                 .Where(x => !x.Name.Equals("id", StringComparison.CurrentCultureIgnoreCase)).ToList();
 
         private static string GetUpdateStatement<T>(T instance) where T : BaseDataModel, new()
-            => $"update {GetTableName<T>()} set" +
-               $"{string.Join(',', GetCreateUpdateApplicableProperties<T>().Select(x => $"{x.Name} = {GetStringInCorrectWrappers(x.GetValue(instance).ToString(), x.PropertyType)}"))}"
-               + $" where id = {instance.Id}";
+            => $"update {GetTableName<T>()} set " +
+               string.Join(',', GetCreateUpdateApplicableProperties<T>().Select(x => $"{x.Name} = {SqlHelpers.GetStringInCorrectWrappers(x.GetValue(instance).ToString(), x.PropertyType)}"))
+               + $" where {SqlHelpers.EqualToo(nameof(BaseDataModel.Id), instance.Id)}";
 
         private static string GetCreateStatement<T>(T instance)
             => $"insert into {GetTableName<T>()} " +
                       $"({string.Join(',', GetCreateUpdateApplicableProperties<T>().Select(x => $"{x.Name}"))})" +
-                      $" values ({string.Join(',', GetCreateUpdateApplicableProperties<T>().Select(x => GetStringInCorrectWrappers(x.GetValue(instance).ToString(), x.PropertyType)))})";
+                      $" values ({string.Join(',', GetCreateUpdateApplicableProperties<T>().Select(x => SqlHelpers.GetStringInCorrectWrappers(x.GetValue(instance).ToString(), x.PropertyType)))})";
 
-        private static string GetStringInCorrectWrappers(string value, Type propertyType)
-        {
-            if (new List<Type>() { typeof(string), typeof(DateTime), typeof(TimeSpan), typeof(decimal) }.Any(z => z == propertyType))
-            {
-                return $"\"{value}\"";
-            }
-            if (new List<Type>() { typeof(byte[]), typeof(bool), typeof(byte), typeof(int), typeof(long), typeof(double) }.Any(z => z == propertyType))
-            {
-                return value;
-            }
-
-
-            throw new Exception($"Couldnt find the correct wrappers for type {propertyType.Name}");
-        }
+  
 
         private static string GetSelectQuery<T>() =>
             $"select {string.Join(',', typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance).Select(x => $"{x.Name}"))} from {GetTableName<T>()}";
@@ -211,11 +210,13 @@ namespace TodoApp.Helpers
             while (reader.Read())
             {
                 var instance = new T();
-                foreach (var column in columnSchema)
+                foreach (var column in columnSchema.Where(x=> x.ColumnOrdinal.HasValue))
                 {
                     var property = typeof(T).GetProperties().FirstOrDefault(x =>
                         x.Name.Equals(column.BaseColumnName, StringComparison.CurrentCultureIgnoreCase));
                     if (property is null)
+                        continue;
+                    if (reader.IsDBNull(column.ColumnOrdinal.Value))
                         continue;
                     var methodTyped = ReflectionHelper.GetMethodTyped(nameof(SqliteDataReader.GetFieldValue),
                         typeof(SqliteDataReader), property.PropertyType);

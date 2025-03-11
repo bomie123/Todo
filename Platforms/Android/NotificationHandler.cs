@@ -1,8 +1,6 @@
 ﻿using Android.App;
 using Android.Content;
-using Android.OS;
 using AndroidX.Core.App;
-using Application = Android.App.Application;
 
 namespace TodoApp.Platforms.Android
 {
