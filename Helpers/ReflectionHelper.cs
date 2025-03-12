@@ -31,5 +31,6 @@ namespace TodoApp.Helpers
                 return typeToSearch.GetProperties(flags).Where(func).ToList();
             });
 
+        
     }
 }

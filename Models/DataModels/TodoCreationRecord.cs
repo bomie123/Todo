@@ -6,18 +6,14 @@ namespace TodoApp.Models.DataModels
     class TodoCreationRecord : BaseDataModel
     {
         public string TodoText { get; set; }
-        public bool HasToBeDoneOnDate { get; set; }
-        
-        #region Notify
-        public DateTime LastNotifyDateTime { get; set; }
-        public int DaysBeforeReminder { get; set; }
-        public bool MustBeDoneOnDeadline { get; set; }
-        #endregion
-        
-        #region Repeat
-        public RepeatInterval RepeatInterval { get; set; }
-        public int RepeatFrequency { get; set; }
-        #endregion
+        public TimeSpan CreateTodoEvery { get; set; }
+        public int DaysBeforeHighUrgency { get; set; }
+        public int DaysBeforeMediumUrgency { get; set; }
+        public int DaysBeforeLowUrgency { get; set; }
 
+        public int TotalUrgencyDays
+        {
+            get => DaysBeforeHighUrgency + DaysBeforeMediumUrgency + DaysBeforeLowUrgency;
+        }
     }
 }
