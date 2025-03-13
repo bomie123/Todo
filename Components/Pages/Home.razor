@@ -4,26 +4,13 @@
 @using TodoApp.Models.DataModels
 @using TodoApp.Models.DataModels.Enums
 
-<h1>Hello, world!</h1>
+<table>
+@foreach (var todo in DatabaseHelper.GetData<TodoRecord>().Where(x=> x.DisplayOnList()).OrderBy(x => x.CurrentTaskUrgency))
+{
+    <tr>
+        <input type="checkbox"  class="todoChecker" />
+        <h1>@todo.DisplayTodoText()</h1>
 
-Welcome to your new app.
-<button class="btn btn-primary" @onclick="TestDatabase">Click me</button>
-
-@code {
-
-    private void TestDatabase()
-    {
-        try
-        {
-    
-            var todoRecords = DatabaseHelper.GetData<TodoRecord>();
-
-
-        }
-        catch (Exception ex)
-        {
-
-        }
-
-    }
+    </tr>
 }
+</table>

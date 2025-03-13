@@ -15,39 +15,74 @@ namespace TodoApp.Models.DataModels
         #endregion
 
         #region Calculated
-        [DatabaseIgnore]
         public string TodoText
         {
-            get => TodoCreator?.TodoText??"";
+            get => TodoCreator?.TodoText ?? "";
         }
-        [DatabaseIgnore]
         public string HumanReadableTimeframe
         {
             get
             {
-                var differenceTimespan = DateTime.UtcNow - Deadline;
-                if (differenceTimespan.Days > 7) //return in week format
-                    return $"{Math.Round((double)(differenceTimespan.Days /7), MidpointRounding.ToZero)} weeks {differenceTimespan.Days %7} days";
-                return $"";
+
+                var differenceTimespan = Deadline - DateTime.UtcNow;
+                var days = differenceTimespan.Days;
+                var text = "";
+                if (days < 0)
+                {
+                    text += "due for ";
+                    days *= -1;
+                }
+                else if (days == 0)
+                {
+                    return "Today";
+                }
+                else
+                {
+                    text += "In ";
+                }
+
+
+                if (days > 7)
+                {
+                    var weeks = Math.Round((double)(days / 7), MidpointRounding.ToZero);
+                    text += weeks + $" week{(weeks == 1 ? "" : "s")} ";
+                }
+                var displayDays = Math.Round((double)(days % 7), MidpointRounding.ToZero);
+
+                text += $"{displayDays} day{(displayDays == 1 ? "" : "s")}";
+                return text;
             }
         }
-        [DatabaseIgnore]
-        public Urgency Urgency
+
+        public string DisplayTodoText() =>
+            $"{(HasReachedDeadline() ? "" : "Prep - ")}{TodoText} {HumanReadableTimeframe}";
+
+
+        public Urgency CurrentTaskUrgency
         {
             get
             {
-                var dayCount = 0;
-                if (Deadline.AddDays(TodoCreator.DaysBeforeHighUrgency * -1) > DateTime.UtcNow)
-                    return Urgency.High;
-                dayCount += TodoCreator.DaysBeforeHighUrgency;
-                if (Deadline.AddDays((TodoCreator.DaysBeforeMediumUrgency + dayCount) * -1) > DateTime.UtcNow)
-                    return Urgency.Medium;
+                if (HasReachedDeadline())
+                    return TodoCreator.TaskUrgency;
+                else if (TodoCreator?.HasPrepWork ?? false)
+                    return TodoCreator.PrepWorkUrgency;
                 return Urgency.Low;
             }
         }
+        public bool PrepWorkCompleted
+        {
+            get => CompletedPrepWorkAt != null;
+        }
+        public bool CompletedTask
+        {
+            get => CompletedTaskAt != null;
+        }
+        public bool HasReachedDeadline() => DateTime.UtcNow.AddDays(-1) < Deadline;
+
+        public bool DisplayOnList() => HasReachedDeadline() ? CompletedTask : PrepWorkCompleted;
         #endregion
         public DateTime Deadline { get; set; }
-
-        public bool Completed { get; set; }
+        public DateTime? CompletedPrepWorkAt { get; set; }
+        public DateTime? CompletedTaskAt { get; set; }
     }
 }

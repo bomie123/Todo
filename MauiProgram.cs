@@ -2,6 +2,7 @@
 using Serilog;
 using TodoApp.Helpers;
 using TodoApp.Models.DataModels;
+using TodoApp.Models.DataModels.Enums;
 
 namespace TodoApp;
 
@@ -33,47 +34,71 @@ public static class MauiProgram
         {
 			Active = true,
 			CreateTodoEvery = new TimeSpan(24, 0, 0),
-			DaysBeforeHighUrgency = 1,
-			DaysBeforeLowUrgency = 0,
-			DaysBeforeMediumUrgency = 0,
 			TodoText = "Walk dog",
+            TaskUrgency = Urgency.High
         });
 		var avesBirthdayAction = DatabaseHelper.UpsertDataWithReturn(new TodoCreationRecord()
         {
 			Active = true,
 			CreateTodoEvery = new TimeSpan(365, 0,0,0),
-			DaysBeforeHighUrgency = 14,
-			DaysBeforeLowUrgency = 0,
-			DaysBeforeMediumUrgency = 0,
-			TodoText = "Averys birthday"
+            TodoText = "Averys birthday",
+            PrepWorkUrgency = Urgency.Low,
+            TaskUrgency = Urgency.High,
+            ShowPrepWorkDaysBefore = 14
         });
-		DatabaseHelper.UpsertData(new TodoCreationRecord()
+		var driveCarAction = DatabaseHelper.UpsertDataWithReturn(new TodoCreationRecord()
         {
             Active = true,
             CreateTodoEvery = new TimeSpan(31, 0, 0, 0),
-            DaysBeforeHighUrgency = 0,
-            DaysBeforeLowUrgency = 4,
-            DaysBeforeMediumUrgency = 1,
-            TodoText = "Drive car"
+            TodoText = "Drive car",
+            TaskUrgency = Urgency.Medium
         });
-		DatabaseHelper.UpsertData(new TodoRecord()
+        var paintFenceAction = DatabaseHelper.UpsertDataWithReturn(new TodoCreationRecord()
+        {
+            Active = true,
+            TodoText = "Paint fence",
+            TaskUrgency = Urgency.Medium,
+        });
+        DatabaseHelper.UpsertData(new TodoRecord()
         {
 			Active = true,
-			Completed = false,
 			Deadline = DateTime.UtcNow.AddDays(0),
-			TodoCreatorId = walkDogAction.First().Id
+			TodoCreatorId = walkDogAction.First().Id,
         });
         DatabaseHelper.UpsertData(new TodoRecord()
         {
             Active = true,
-            Completed = false,
             Deadline = new DateTime(DateTime.UtcNow.Year, 11, 1),
-            TodoCreatorId = walkDogAction.First().Id
+            TodoCreatorId = avesBirthdayAction.First().Id
         });
-
+        DatabaseHelper.UpsertData(new TodoRecord()
+        {
+            Active = true,
+            Deadline = DateTime.UtcNow.AddDays(31),
+            TodoCreatorId = driveCarAction.First().Id
+        });
+        DatabaseHelper.UpsertData(new TodoRecord()
+        {
+            Active = true,
+            Deadline = DateTime.UtcNow.AddDays(-20),
+            TodoCreatorId = paintFenceAction.First().Id
+        });
         #endregion
 #endif
 
         return builder.Build();
-	}
+
+
+        //TODO 
+
+        //need to implement background handler to create the todorecords & update the notification
+        //Need to implement the frontend to show the elements 
+
+        //Further expansions
+        //timer - for exercize
+        //implement logging 
+        //mechanism to back up tasks in google drive
+        //homescreen widget 
+        //combined todos (a todo made up of many sub todos)
+    }
 }

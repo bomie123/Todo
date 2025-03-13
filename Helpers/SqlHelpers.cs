@@ -6,7 +6,7 @@
 
         public static string GetStringInCorrectWrappers(string value, Type propertyType)
         {
-            if (new List<Type>() { typeof(string), typeof(DateTime), typeof(TimeSpan), typeof(decimal) }.Any(z => z == propertyType))
+            if (new List<Type>() { typeof(string), typeof(DateTime), typeof(TimeSpan), typeof(decimal) , typeof(DateTime?)}.Any(z => z == propertyType))
             {
                 return $"\"{value}\"";
             }

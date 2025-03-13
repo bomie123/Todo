@@ -7,13 +7,16 @@ namespace TodoApp.Models.DataModels
     {
         public string TodoText { get; set; }
         public TimeSpan CreateTodoEvery { get; set; }
-        public int DaysBeforeHighUrgency { get; set; }
-        public int DaysBeforeMediumUrgency { get; set; }
-        public int DaysBeforeLowUrgency { get; set; }
+        public Urgency TaskUrgency { get; set; }
 
-        public int TotalUrgencyDays
+        public bool HasPrepWork
         {
-            get => DaysBeforeHighUrgency + DaysBeforeMediumUrgency + DaysBeforeLowUrgency;
+            get => ShowPrepWorkDaysBefore >0;
         }
+        public Urgency PrepWorkUrgency { get; set; }
+        public int ShowPrepWorkDaysBefore { get; set; }
+
+
     }
+
 }

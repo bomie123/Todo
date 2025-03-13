@@ -200,7 +200,7 @@ namespace TodoApp.Helpers
         private static string ConvertPropTypeToSqlLiteType(PropertyInfo prop)
         {
             //https://learn.microsoft.com/en-us/dotnet/standard/data/sqlite/types
-            if (new List<Type>() { typeof(string), typeof(DateTime), typeof(TimeSpan), typeof(decimal) }.Any(z =>
+            if (new List<Type>() { typeof(string), typeof(DateTime), typeof(TimeSpan), typeof(decimal), typeof(DateTime?) }.Any(z =>
                     z == prop.PropertyType))
             {
                 return "TEXT nocase";
@@ -272,59 +272,80 @@ namespace TodoApp.Helpers
 
         private static List<T> GetDataFromSqlCommand<T>(string sqlToRun) where T : new()
         {
-            Log.Warning($"Executing Query - {sqlToRun}");
-
-            var reader = GetCommand(sqlToRun).ExecuteReader();
-            var columnSchema = reader.GetColumnSchema();
-            var returnVal = new List<T>();
-            while (reader.Read())
-            {
-                var instance = new T();
-                foreach (var column in columnSchema.Where(x => x.ColumnOrdinal.HasValue))
-                {
-                    var property = typeof(T).GetProperties().FirstOrDefault(x =>
-                        x.Name.Equals(column.BaseColumnName, StringComparison.CurrentCultureIgnoreCase));
-                    if (property is null)
-                        continue;
-                    if (reader.IsDBNull(column.ColumnOrdinal.Value))
-                        continue;
-                    var methodTyped = ReflectionHelper.GetMethodTyped(nameof(SqliteDataReader.GetFieldValue),
-                        typeof(SqliteDataReader), property.PropertyType);
-                    var valueToAdd = methodTyped.Invoke(reader, new object[]
-                    {
-                        column.ColumnOrdinal
-                    });
-                    if (property.GetSetMethod() != null)
-                        property.SetValue(instance, valueToAdd);
-                }
-                returnVal.Add(instance);
-            }
-
-            var foreignKeyProperties = GetRelevantProperties(typeof(T))
-                .Where(x => x.GetCustomAttribute<ForeignKeyAttribute>() != null);
-            //foreach table we're linked with 
-            foreach (var foreignKey in foreignKeyProperties)
+            try
             {
 
-                //get all the properties should be auto populated on this foreign key
-                foreach (var property in typeof(T).GetProperties(ReflectionHelper.DefaultBindingFlags).Where(x => x.GetCustomAttribute<AutoPopulateAttribute>() != null &&
-                             x.PropertyType ==
-                             foreignKey.GetCustomAttribute<ForeignKeyAttribute>().Type))
+
+                Log.Warning($"Executing Query - {sqlToRun}");
+
+                var reader = GetCommand(sqlToRun).ExecuteReader();
+                var columnSchema = reader.GetColumnSchema();
+                var returnVal = new List<T>();
+                while (reader.Read())
                 {
-                    foreach (var instance in returnVal.Where(x => x != null))
+                    var instance = new T();
+                    foreach (var column in columnSchema.Where(x => x.ColumnOrdinal.HasValue))
                     {
-                        var idToSearchFor = long.Parse(foreignKey.GetValue(instance).ToString());
-                        var typedMethodInstance = ReflectionHelper.GetMethodTyped(nameof(DatabaseHelper.SelectData), typeof(DatabaseHelper), property.PropertyType, new[] { typeof(long) });
-                        property.SetValue(instance, typedMethodInstance.Invoke(null, new object[]
+                        var property = typeof(T).GetProperties().FirstOrDefault(x =>
+                            x.Name.Equals(column.BaseColumnName, StringComparison.CurrentCultureIgnoreCase));
+                        if (property is null)
+                            continue;
+                        if (reader.IsDBNull(column.ColumnOrdinal.Value) ||
+                            (reader.GetFieldType(column.ColumnOrdinal.Value) == typeof(string) &&
+                             reader.GetFieldValue<string>(column.ColumnOrdinal.Value) == ""))
+                            continue;
+
+                        var methodTyped = ReflectionHelper.GetMethodTyped(nameof(SqliteDataReader.GetFieldValue),
+                            typeof(SqliteDataReader), property.PropertyType);
+                        var valueToAdd = methodTyped.Invoke(reader, new object[]
                         {
-                             idToSearchFor
-                        }));
+                            column.ColumnOrdinal.Value
+                        });
+                        if (property.GetSetMethod() != null && valueToAdd != null)
+                        {
+
+                            property.SetValue(instance, valueToAdd);
+
+                        }
+
+                    }
+
+
+                    returnVal.Add(instance);
+                }
+
+                var foreignKeyProperties = GetRelevantProperties(typeof(T))
+                    .Where(x => x.GetCustomAttribute<ForeignKeyAttribute>() != null);
+                //foreach table we're linked with 
+                foreach (var foreignKey in foreignKeyProperties)
+                {
+
+                    //get all the properties should be auto populated on this foreign key
+                    foreach (var property in typeof(T).GetProperties(ReflectionHelper.DefaultBindingFlags).Where(x =>
+                                 x.GetCustomAttribute<AutoPopulateAttribute>() != null &&
+                                 x.PropertyType ==
+                                 foreignKey.GetCustomAttribute<ForeignKeyAttribute>().Type))
+                    {
+                        foreach (var instance in returnVal.Where(x => x != null))
+                        {
+                            var idToSearchFor = long.Parse(foreignKey.GetValue(instance).ToString());
+                            var typedMethodInstance = ReflectionHelper.GetMethodTyped(nameof(DatabaseHelper.SelectData),
+                                typeof(DatabaseHelper), property.PropertyType, new[] { typeof(long) });
+                            property.SetValue(instance, typedMethodInstance.Invoke(null, new object[]
+                            {
+                                idToSearchFor
+                            }));
+                        }
                     }
                 }
+
+
+                return returnVal;
             }
-
-
-            return returnVal;
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
         private static SqliteCommand GetCommand(string sqlToRun)
         {
