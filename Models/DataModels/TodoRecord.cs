@@ -29,7 +29,7 @@ namespace TodoApp.Models.DataModels
                 var text = "";
                 if (days < 0)
                 {
-                    text += "due for ";
+                    text += "Due for ";
                     days *= -1;
                 }
                 else if (days == 0)
@@ -55,7 +55,7 @@ namespace TodoApp.Models.DataModels
         }
 
         public string DisplayTodoText() =>
-            $"{(HasReachedDeadline() ? "" : "Prep - ")}{TodoText} {HumanReadableTimeframe}";
+            $"{(HasReachedDeadline() ? "Prep:" : "")}{TodoText} {HumanReadableTimeframe}";
 
 
         public Urgency CurrentTaskUrgency
@@ -79,7 +79,7 @@ namespace TodoApp.Models.DataModels
         }
         public bool HasReachedDeadline() => DateTime.UtcNow.AddDays(-1) < Deadline;
 
-        public bool DisplayOnList() => HasReachedDeadline() ? CompletedTask : PrepWorkCompleted;
+        public bool DisplayOnList() => !(HasReachedDeadline() ? CompletedTask : PrepWorkCompleted);
         #endregion
         public DateTime Deadline { get; set; }
         public DateTime? CompletedPrepWorkAt { get; set; }

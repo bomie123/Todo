@@ -4,13 +4,24 @@
 @using TodoApp.Models.DataModels
 @using TodoApp.Models.DataModels.Enums
 
-<table>
-@foreach (var todo in DatabaseHelper.GetData<TodoRecord>().Where(x=> x.DisplayOnList()).OrderBy(x => x.CurrentTaskUrgency))
-{
-    <tr>
-        <input type="checkbox"  class="todoChecker" />
-        <h1>@todo.DisplayTodoText()</h1>
-
-    </tr>
-}
-</table>
+<table class="table">
+    <thead>
+        <tr>
+            <th style="width: 10%"></th>
+            <th style="width:65%">Task</th>
+            <th style="width: 25%">Timeline</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var todo in DatabaseHelper.GetData<TodoRecord>().Where(x => x.DisplayOnList()).OrderBy(x => x.CurrentTaskUrgency))
+        {
+            <tr>
+                <td>
+                     <input type="checkbox" class="todoChecker"/>
+                </td>
+                <td>@todo.TodoCreator.TodoText</td>
+                <td>@todo.HumanReadableTimeframe</td>
+            </tr>
+        }
+    </tbody>
+</table>  
