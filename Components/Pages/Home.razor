@@ -2,7 +2,6 @@
 @using TodoApp.Helpers
 @using TodoApp.Models
 @using TodoApp.Models.DataModels
-@using TodoApp.Models.DataModels.Enums
 
 <table class="table">
     <thead>
@@ -13,13 +12,13 @@
         </tr>
     </thead>
     <tbody>
-        @foreach (var todo in DatabaseHelper.GetData<TodoRecord>().Where(x => x.DisplayOnList()).OrderBy(x => x.CurrentTaskUrgency))
+        @foreach (var todo in DatabaseHelper.GetData<TodoRecord>().Where(x => x.Show).OrderBy(x => x.CurrentImportance))
         {
             <tr>
                 <td>
                      <input type="checkbox" class="todoChecker"/>
                 </td>
-                <td>@todo.TodoCreator.TodoText</td>
+                <td>@todo.Label</td>
                 <td>@todo.HumanReadableTimeframe</td>
             </tr>
         }

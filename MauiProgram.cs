@@ -30,58 +30,39 @@ public static class MauiProgram
         #region Easy test data
         //clear old data 
         File.Delete(Path.Combine(FileSystem.Current.CacheDirectory, "todo.db"));
-        var walkDogAction = DatabaseHelper.UpsertDataWithReturn(new TodoCreationRecord()
-        {
-			Active = true,
-			CreateTodoEvery = new TimeSpan(24, 0, 0),
-			TodoText = "Walk dog",
-            TaskUrgency = Urgency.High
-        });
-		var avesBirthdayAction = DatabaseHelper.UpsertDataWithReturn(new TodoCreationRecord()
-        {
-			Active = true,
-			CreateTodoEvery = new TimeSpan(365, 0,0,0),
-            TodoText = "Averys birthday",
-            PrepWorkUrgency = Urgency.Low,
-            TaskUrgency = Urgency.High,
-            ShowPrepWorkDaysBefore = 14
-        });
-		var driveCarAction = DatabaseHelper.UpsertDataWithReturn(new TodoCreationRecord()
-        {
-            Active = true,
-            CreateTodoEvery = new TimeSpan(31, 0, 0, 0),
-            TodoText = "Drive car",
-            TaskUrgency = Urgency.Medium
-        });
-        var paintFenceAction = DatabaseHelper.UpsertDataWithReturn(new TodoCreationRecord()
-        {
-            Active = true,
-            TodoText = "Paint fence",
-            TaskUrgency = Urgency.Medium,
-        });
         DatabaseHelper.UpsertData(new TodoRecord()
         {
 			Active = true,
-			Deadline = DateTime.UtcNow.AddDays(0),
-			TodoCreatorId = walkDogAction.First().Id,
+            ActionDate = DateTime.UtcNow,
+            ShowReminderBeforeDays = 0,
+            Label = "Walk dog",
+            MaxImportance = Importance.High,
+            RepeatEvery = TimeSpan.FromDays(1)
         });
         DatabaseHelper.UpsertData(new TodoRecord()
         {
             Active = true,
-            Deadline = new DateTime(DateTime.UtcNow.Year, 11, 1),
-            TodoCreatorId = avesBirthdayAction.First().Id
+            ActionDate = new DateTime(DateTime.UtcNow.Year, 11, 1),
+            ShowReminderBeforeDays = 20,
+            Label = "Averys birthday",
+            MaxImportance = Importance.High,
+            RepeatEvery = TimeSpan.FromDays(365)
         });
         DatabaseHelper.UpsertData(new TodoRecord()
         {
             Active = true,
-            Deadline = DateTime.UtcNow.AddDays(31),
-            TodoCreatorId = driveCarAction.First().Id
+            ActionDate = DateTime.UtcNow.AddDays(3),
+            ShowReminderBeforeDays = 5,
+            Label = "Drive car",
+            MaxImportance = Importance.Medium,
+            RepeatEvery = TimeSpan.FromDays(30)
         });
         DatabaseHelper.UpsertData(new TodoRecord()
         {
             Active = true,
-            Deadline = DateTime.UtcNow.AddDays(-20),
-            TodoCreatorId = paintFenceAction.First().Id
+            ActionDate = DateTime.UtcNow.AddDays(-50),
+            Label = "Paint fence",
+            MaxImportance = Importance.Medium
         });
         #endregion
 #endif

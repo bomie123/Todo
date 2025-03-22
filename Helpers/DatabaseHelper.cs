@@ -45,7 +45,7 @@ namespace TodoApp.Helpers
             CreateTableIfRequired<T>();
             return id.Select(x =>
                     GetDataFromSqlCommand<T>(
-                        $"{GetSelectQuery<T>()} where {SqlHelpers.EqualToo(nameof(BaseDataModel.Id), x)}")
+                        $"{GetSelectQuery<T>()} where {EqualToo(nameof(BaseDataModel.Id), x)}")
                     .FirstOrDefault())
                 .ToList();
         }
@@ -199,12 +199,6 @@ namespace TodoApp.Helpers
 
         private static string ConvertPropTypeToSqlLiteType(PropertyInfo prop)
         {
-            //https://learn.microsoft.com/en-us/dotnet/standard/data/sqlite/types
-            if (new List<Type>() { typeof(string), typeof(DateTime), typeof(TimeSpan), typeof(decimal), typeof(DateTime?) }.Any(z =>
-                    z == prop.PropertyType))
-            {
-                return "TEXT nocase";
-            }
 
             if (new List<Type>() { typeof(byte[]) }.Any(z => z == prop.PropertyType))
             {
@@ -221,9 +215,7 @@ namespace TodoApp.Helpers
             {
                 return "REAL";
             }
-
-            throw new Exception($"Type is not a known one");
-
+            return "TEXT nocase";
         }
 
 
@@ -232,7 +224,18 @@ namespace TodoApp.Helpers
 
 
         #region Sql Helpers
+        public static string EqualToo(string NameOfProperty, object valueOfProperty) => $"{NameOfProperty} = {GetStringInCorrectWrappers(valueOfProperty.ToString(), valueOfProperty.GetType())}";
 
+        public static string GetStringInCorrectWrappers(string value, Type propertyType)
+        {
+            if (new List<Type>() { typeof(byte[]), typeof(bool), typeof(byte), typeof(int), typeof(long), typeof(double) }.Any(z => z == propertyType || propertyType.IsEnum))
+            {
+                return value;
+            }
+
+            return $"\"{value}\"";
+
+        }
         private static List<PropertyInfo> GetCreateUpdateApplicableProperties<T>() =>
             typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(x => !x.Name.Equals("id", StringComparison.CurrentCultureIgnoreCase) &&
@@ -242,13 +245,13 @@ namespace TodoApp.Helpers
             => $"update {GetTableName<T>()} set " +
                string.Join(',',
                    GetCreateUpdateApplicableProperties<T>().Select(x =>
-                       $"{x.Name} = {SqlHelpers.GetStringInCorrectWrappers(GetColumnValue(x.GetValue(instance)), x.PropertyType)}"))
-               + $" where {SqlHelpers.EqualToo(nameof(BaseDataModel.Id), instance.Id)}";
+                       $"{x.Name} = {GetStringInCorrectWrappers(GetColumnValue(x.GetValue(instance)), x.PropertyType)}"))
+               + $" where {EqualToo(nameof(BaseDataModel.Id), instance.Id)}";
 
         private static string GetCreateStatement<T>(T instance)
             => $"insert into {GetTableName<T>()} " +
                $"({string.Join(',', GetCreateUpdateApplicableProperties<T>().Select(x => $"{x.Name}"))})" +
-               $" values ({string.Join(',', GetCreateUpdateApplicableProperties<T>().Select(x => SqlHelpers.GetStringInCorrectWrappers(GetColumnValue(x.GetValue(instance)), x.PropertyType)))})";
+               $" values ({string.Join(',', GetCreateUpdateApplicableProperties<T>().Select(x => GetStringInCorrectWrappers(GetColumnValue(x.GetValue(instance)), x.PropertyType)))})";
 
         private static string GetColumnValue(object? instance)
         {

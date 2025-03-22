@@ -6,10 +6,8 @@ using System.Threading.Tasks;
 
 namespace TodoApp.Models.DataModels.Enums
 {
-    enum Urgency
+    enum Importance
     {
-        High,
-        Medium,
-        Low
+        High, Medium, Low
     }
 }
