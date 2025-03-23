@@ -1,32 +1,24 @@
 ﻿<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <div>
-            <a class="navbar-brand" href="" @* onclick="document.querySelector('.navbar-toggler').click()" *@>TodoApp</a>
+            <a class="navbar-brand" href="">TodoApp</a>
 
         </div>
-        <img src="Resources/Icons/darkmode.png" onclick="document.documentElement.setAttribute('data-bs-theme',document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'light': 'dark');" width="25px" height="25px" style="background-color: white; border-radius: 50%; float: right;" />
-        <img src="Resources/Icons/dots.png" onclick="document.documentElement.setAttribute('data-bs-theme',document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'light': 'dark');" width="25px" height="25px" style="background-color: white; border-radius: 50%; float: right;" />
+        <img src="Resources/Icons/darkmode.png" onclick="document.documentElement.setAttribute('data-bs-theme',document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'light': 'dark');" width="25px" height="25px" style="background-color: white; border-radius: 50%; margin-right: 75px" />
+
     </div>
-
 </div>
-
-<div class="nav-scrollable">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-    </nav>
-</div>
-@* <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" style="padding-left: 10px" />
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                <img src="Resources/Icons/house.svg" width="25px" height="25px" /> Home
+            </NavLink>
+            <NavLink class="nav-link" href="Settings">
+                <img src="Resources/Icons/gear.svg" width="25px" height="25px" />Settings
             </NavLink>
         </div>
     </nav>
-</div> *@
+</div>

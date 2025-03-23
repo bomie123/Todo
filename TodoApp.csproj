@@ -64,9 +64,6 @@
       <Content Update="wwwroot\Resources\Icons\darkmode.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
-      <Content Update="wwwroot\Resources\Icons\dots.png">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
       <Content Update="wwwroot\Resources\Icons\warning.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
