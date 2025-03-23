@@ -14,12 +14,14 @@ namespace TodoApp.Models.DataModels
         public DateTime ActionDate { get; set; }
         public TimeSpan? RepeatEvery { get; set; }
         public Importance MaxImportance { get; set; }
+        public bool Complete { get; set; }
+        public bool ReminderComplete { get; set; }
 
         #region Calculated Fields
 
-        public bool Show
+        public bool ShouldBeHidden
         {
-            get => ShowReminder || Due;
+            get => Due? Complete: !(ShowReminder && !ReminderComplete);
         }
         public Importance CurrentImportance
         {

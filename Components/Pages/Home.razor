@@ -1,7 +1,5 @@
 ﻿@page "/"
-@using TodoApp.Helpers
-@using TodoApp.Models
-@using TodoApp.Models.DataModels
+@using TodoApp.Models.DataModels.Enums
 
 <table class="table">
     <thead>
@@ -12,15 +10,47 @@
         </tr>
     </thead>
     <tbody>
-        @foreach (var todo in DatabaseHelper.GetData<TodoRecord>().Where(x => x.Show).OrderBy(x => x.CurrentImportance))
+        @foreach (var todo in CurrentData.OrderBy(x => x.CurrentImportance))
         {
-            <tr>
+            <tr onclick="document.getElementById('@todo.Id').click(); " hidden="@todo.ShouldBeHidden">
                 <td>
-                     <input type="checkbox" class="todoChecker"/>
+                    <div style="white-space: nowrap;">
+                    @if (todo.Due)
+                    {
+                        <input type="checkbox" checked="@todo.Complete" id="@todo.Id" @onchange="(e) => OnCheckboxChange(todo.Id, (bool)e.Value)"/>
+                    }
+                    else
+                    {
+                        <input type="checkbox" checked="@todo.ReminderComplete" id="@todo.Id" @onchange="(e) => OnCheckboxChange(todo.Id, (bool)e.Value)"/>
+                    }
+                    @if (todo.CurrentImportance == Importance.High)
+                    {
+                        <img src="Resources/Icons/warning.png" width="25px" height="25px" />
+                    }
+                    </div>
                 </td>
                 <td>@todo.Label</td>
                 <td>@todo.HumanReadableTimeframe</td>
             </tr>
         }
     </tbody>
-</table>  
+</table>
+
+@code
+{
+    private List<TodoRecord> CurrentData { get; set; } = DatabaseHelper.GetData<TodoRecord>();
+    private void OnCheckboxChange(long checkboxId, bool checkboxChecked)
+    {
+        var record = (TodoRecord)CurrentData.FirstOrDefault(x => x.Id == checkboxId);
+
+        if (record.Due)
+        {
+            record.Complete = checkboxChecked;
+        }
+        else
+        {
+            record.ReminderComplete = checkboxChecked;
+        }
+        DatabaseHelper.UpsertData(record);
+    }
+}

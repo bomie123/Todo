@@ -26,7 +26,6 @@ namespace TodoApp.Platforms.Android
             BackgroundServiceToRun = new Timer((obj) =>
             {
                 count += 1;
-                Console.WriteLine("Am running");
                 if (count % 10 == 0)
                 {
                     MainActivity.NotificationHandler.SendNotification(MainActivity.NotificationHandler.GetDefaultNotificationBuilder("sending warning ").Build(), TodoAppNotificationChannel.WarningNotificationId);
