@@ -1,6 +1,13 @@
 ﻿@page "/Settings"
+@implements IDisposable;
 <h3>Settings</h3>
 
 @code {
+    SettingsRecord localSettings = SettingsHelper.GetSettingsRecord();
+
+    void IDisposable.Dispose()
+    {
+        SettingsHelper.UpdateSettings(localSettings);
+    }
 
 }

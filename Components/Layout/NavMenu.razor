@@ -4,7 +4,7 @@
             <a class="navbar-brand" href="">TodoApp</a>
 
         </div>
-        <img src="Resources/Icons/darkmode.png" onclick="document.documentElement.setAttribute('data-bs-theme',document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'light': 'dark');" width="25px" height="25px" style="background-color: white; border-radius: 50%; margin-right: 75px" />
+        <img src="Resources/Icons/darkmode.png"  id="darkLightToggle"@ref="DarkModeToggle" onclick="document.documentElement.setAttribute('data-bs-theme',document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'light': 'dark');" width="25px" height="25px" style="background-color: white; border-radius: 50%; margin-right: 75px" />
 
     </div>
 </div>
@@ -16,9 +16,41 @@
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
                 <img src="Resources/Icons/house.svg" width="25px" height="25px" /> Home
             </NavLink>
-            <NavLink class="nav-link" href="Settings">
-                <img src="Resources/Icons/gear.svg" width="25px" height="25px" />Settings
+            <NavLink class="nav-link" href="SettingsRecord">
+                <img src="Resources/Icons/gear.svg" width="25px" height="25px" />SettingsRecord
             </NavLink>
         </div>
     </nav>
 </div>
+<script>
+    window.TriggerDarkModeClick = () => {
+        document.getElementById('darkLightToggle').click();
+    }
+</script>
+
+@code
+{
+    public static ElementReference DarkModeToggle;
+    
+    protected override void OnInitialized()
+    {
+        var thread = new Thread(async () =>
+        {
+            Microsoft.JSInterop.IJSRuntime jsRef = JSRuntime;
+            var settings = SettingsHelper.GetSettingsRecord();
+            //change the app settingsRecord to their default
+            if (!settings.StartWithDarkMode)
+            {
+                while (!await jsRef.InvokeAsync<bool>("DoesTagExistById", new object?[1] { "darkLightToggle" }))
+                {
+                    Thread.Sleep(100);
+                }
+                await jsRef.InvokeVoidAsync("TriggerDarkModeClick");
+            }
+           
+        });
+        thread.Start();
+
+
+    }
+}

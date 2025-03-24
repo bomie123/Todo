@@ -1,5 +1,8 @@
 ﻿@page "/"
 @using TodoApp.Models.DataModels.Enums
+@using static Layout.NavMenu;
+@using TodoApp.Components.Layout
+@inject NavigationManager Navigation
 
 <table class="table">
     <thead>
@@ -36,8 +39,10 @@
     </tbody>
 </table>
 
+
 @code
 {
+  
     private List<TodoRecord> CurrentData { get; set; } = DatabaseHelper.GetData<TodoRecord>();
     private void OnCheckboxChange(long checkboxId, bool checkboxChecked)
     {
@@ -53,4 +58,6 @@
         }
         DatabaseHelper.UpsertData(record);
     }
+
+
 }
