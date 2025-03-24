@@ -1,11 +1,11 @@
 ﻿@page "/Settings"
 @using Microsoft.Maui.Controls.PlatformConfiguration
+@using TodoApp.Models.DataModels.Enums
 @implements IDisposable;
 <form>
     <div class="form-group row">
-        <label class="col-sm-2 col-form-label col-form-label-sm" for="lightingMode">Select default lighting mode</label>
         <InputSelect class="form-control form-control-lg col-sm-10" id="lightingMode" @bind-Value="@localSettings.DefaultLighting">
-          
+
             @foreach (var lightingState in Enum.GetValues(typeof(DefaultLighting)))
             {
 
@@ -13,7 +13,7 @@
             }
         </InputSelect>
     </div>
-    <div class="form-group row">
+    <div class="form-group row" style="margin-top: 30px;">
         <button type="button" class="btn btn-primary" @onclick="ConfirmDeletionDatabase">
             Delete database
         </button>
@@ -29,15 +29,12 @@
 
     private void ConfirmDeletionDatabase()
     {
-        var test = App.Current.Windows[0].Page;
-        test.DisplayAlert("Test", "test", "test").Wait();
-        _ = test.DisplayPromptAsync("test2", "test2").Result;
-        var promptResult = App.Current.Windows[0].Page.DisplayPromptAsync("Confirmation",
-            "Are you sure you want to delete your database? You will not be able to recover this data").Result;
-        if (promptResult == "OK")
+        var window = App.Current.Windows[0].Page;
+        window.Dispatcher.Dispatch(async () =>
         {
-            File.Delete(Path.Combine(FileSystem.Current.CacheDirectory, "todo.db"));
-        }
+            if (await window.DisplayAlert("Confirmation", "Are you sure you want to delete your database? You will not be able to recover this data and it will reset everything", "Accept", "Cancel"))
+                DatabaseHelper.DeleteDatabase();
+        });
 
     }
 

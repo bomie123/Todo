@@ -15,6 +15,7 @@ public static class MauiProgram
             .WriteTo.Console()
             .CreateLogger();
 		Log.Fatal($"Started up application");
+        DatabaseHelper.DeleteDatabase();
         builder
 			.UseMauiApp<App>()
 			.ConfigureFonts(fonts =>
@@ -27,44 +28,6 @@ public static class MauiProgram
 #if DEBUG
 		builder.Services.AddBlazorWebViewDeveloperTools();
 		builder.Logging.AddDebug();
-        #region Easy test data
-        //clear old data 
-        File.Delete(Path.Combine(FileSystem.Current.CacheDirectory, "todo.db"));
-        DatabaseHelper.UpsertData(new TodoRecord()
-        {
-			Active = true,
-            ActionDate = DateTime.UtcNow,
-            ShowReminderBeforeDays = 0,
-            Label = "Walk dog",
-            MaxImportance = Importance.High,
-            RepeatEvery = TimeSpan.FromDays(1)
-        });
-        DatabaseHelper.UpsertData(new TodoRecord()
-        {
-            Active = true,
-            ActionDate = new DateTime(DateTime.UtcNow.Year, 11, 1),
-            ShowReminderBeforeDays = 20,
-            Label = "Averys birthday",
-            MaxImportance = Importance.High,
-            RepeatEvery = TimeSpan.FromDays(365)
-        });
-        DatabaseHelper.UpsertData(new TodoRecord()
-        {
-            Active = true,
-            ActionDate = DateTime.UtcNow.AddDays(3),
-            ShowReminderBeforeDays = 5,
-            Label = "Drive car",
-            MaxImportance = Importance.Medium,
-            RepeatEvery = TimeSpan.FromDays(30)
-        });
-        DatabaseHelper.UpsertData(new TodoRecord()
-        {
-            Active = true,
-            ActionDate = DateTime.UtcNow.AddDays(-50),
-            Label = "Paint fence",
-            MaxImportance = Importance.Medium
-        });
-        #endregion
 #endif
 
         return builder.Build();

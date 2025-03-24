@@ -4,6 +4,8 @@ using Microsoft.Data.Sqlite;
 using Serilog;
 using TodoApp.Models.DatabaseModels;
 using TodoApp.Models.DatabaseModels.Attributes;
+using TodoApp.Models.DataModels;
+using TodoApp.Models.DataModels.Enums;
 using TodoApp.Platforms.Android;
 
 namespace TodoApp.Helpers
@@ -16,20 +18,75 @@ namespace TodoApp.Helpers
 
         private static SqliteConnection DbConnection()
         {
-            _internalDbConnection ??= new SqliteConnection(
-                new SqliteConnectionStringBuilder(
-                    $"Data Source={Path.Combine(FileSystem.Current.CacheDirectory, "todo.db")}")
-                {
-                    Mode = SqliteOpenMode.ReadWriteCreate,
-                }.ConnectionString);
-            _internalDbConnection.Open();
-            return _internalDbConnection;
+            lock (_internalDbConnection)
+            {
+                _internalDbConnection ??= new SqliteConnection(
+                    new SqliteConnectionStringBuilder(
+                        $"Data Source={Path.Combine(FileSystem.Current.CacheDirectory, "todo.db")}")
+                    {
+                        Mode = SqliteOpenMode.ReadWriteCreate,
+                    }.ConnectionString);
+                _internalDbConnection.Open();
+                return _internalDbConnection;
+            }
         }
 
         private static readonly string DefaultWhereClause = "active=true";
 
         #endregion
 
+        public static void DeleteDatabase()
+        {
+            lock (_internalDbConnection)
+            {
+                File.Delete(Path.Combine(FileSystem.Current.CacheDirectory, "todo.db"));
+                CreatedTables.Clear();
+                if (_internalDbConnection != null)
+                {
+                    _internalDbConnection.Dispose();
+                    _internalDbConnection = null;
+                }
+
+                var test = DbConnection();
+#if DEBUG
+                //upsert some easy default data for testing 
+                DatabaseHelper.UpsertData(new TodoRecord()
+                {
+                    Active = true,
+                    ActionDate = DateTime.UtcNow,
+                    ShowReminderBeforeDays = 0,
+                    Label = "Walk dog",
+                    MaxImportance = Importance.High,
+                    RepeatEvery = TimeSpan.FromDays(1)
+                });
+                DatabaseHelper.UpsertData(new TodoRecord()
+                {
+                    Active = true,
+                    ActionDate = new DateTime(DateTime.UtcNow.Year, 11, 1),
+                    ShowReminderBeforeDays = 20,
+                    Label = "Averys birthday",
+                    MaxImportance = Importance.High,
+                    RepeatEvery = TimeSpan.FromDays(365)
+                });
+                DatabaseHelper.UpsertData(new TodoRecord()
+                {
+                    Active = true,
+                    ActionDate = DateTime.UtcNow.AddDays(3),
+                    ShowReminderBeforeDays = 5,
+                    Label = "Drive car",
+                    MaxImportance = Importance.Medium,
+                    RepeatEvery = TimeSpan.FromDays(30)
+                });
+                DatabaseHelper.UpsertData(new TodoRecord()
+                {
+                    Active = true,
+                    ActionDate = DateTime.UtcNow.AddDays(-50),
+                    Label = "Paint fence",
+                    MaxImportance = Importance.Medium
+                });
+#endif
+            }
+        }
 
         public static List<T> GetData<T>(params string[] whereClause) where T : BaseDataModel, new()
         {
@@ -119,14 +176,12 @@ namespace TodoApp.Helpers
 
         private static List<string> CreatedTables = new List<string>();
 
-
         private static void CreateTableIfRequired<T>()
         {
             if (CreatedTables.Any(z => z == GetTableName<T>()))
             {
                 return;
             }
-
             if (!GetDataFromSqlCommand<ColumnNameList>(
                     $"SELECT name FROM sqlite_master WHERE type='table' AND name='{GetTableName<T>()}';").Any())
             {
