@@ -1,13 +1,44 @@
 ﻿@page "/Settings"
+@using Microsoft.Maui.Controls.PlatformConfiguration
 @implements IDisposable;
-<h3>Settings</h3>
+<form>
+    <div class="form-group row">
+        <label class="col-sm-2 col-form-label col-form-label-sm" for="lightingMode">Select default lighting mode</label>
+        <InputSelect class="form-control form-control-lg col-sm-10" id="lightingMode" @bind-Value="@localSettings.DefaultLighting">
+          
+            @foreach (var lightingState in Enum.GetValues(typeof(DefaultLighting)))
+            {
 
+                <option value="@lightingState">@lightingState</option>
+            }
+        </InputSelect>
+    </div>
+    <div class="form-group row">
+        <button type="button" class="btn btn-primary" @onclick="ConfirmDeletionDatabase">
+            Delete database
+        </button>
+    </div>
+</form>
 @code {
     SettingsRecord localSettings = SettingsHelper.GetSettingsRecord();
 
     void IDisposable.Dispose()
     {
         SettingsHelper.UpdateSettings(localSettings);
+    }
+
+    private void ConfirmDeletionDatabase()
+    {
+        var test = App.Current.Windows[0].Page;
+        test.DisplayAlert("Test", "test", "test").Wait();
+        _ = test.DisplayPromptAsync("test2", "test2").Result;
+        var promptResult = App.Current.Windows[0].Page.DisplayPromptAsync("Confirmation",
+            "Are you sure you want to delete your database? You will not be able to recover this data").Result;
+        if (promptResult == "OK")
+        {
+            File.Delete(Path.Combine(FileSystem.Current.CacheDirectory, "todo.db"));
+        }
+
     }
 
 }

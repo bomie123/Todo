@@ -14,7 +14,7 @@ namespace TodoApp.Helpers
         public static SettingsRecord DefaultSettingsRecord = new SettingsRecord()
         {
             Active = true,
-            StartWithDarkMode = false
+            DefaultLighting = DefaultLighting.SystemDefault
         };
         public static SettingsRecord GetSettingsRecord()
         {

@@ -16,8 +16,8 @@
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
                 <img src="Resources/Icons/house.svg" width="25px" height="25px" /> Home
             </NavLink>
-            <NavLink class="nav-link" href="SettingsRecord">
-                <img src="Resources/Icons/gear.svg" width="25px" height="25px" />SettingsRecord
+            <NavLink class="nav-link" href="Settings">
+                <img src="Resources/Icons/gear.svg" width="25px" height="25px" />Settings
             </NavLink>
         </div>
     </nav>
@@ -39,7 +39,7 @@
             Microsoft.JSInterop.IJSRuntime jsRef = JSRuntime;
             var settings = SettingsHelper.GetSettingsRecord();
             //change the app settingsRecord to their default
-            if (!settings.StartWithDarkMode)
+            if (settings.DefaultLighting == DefaultLighting.Light || (settings.DefaultLighting == DefaultLighting.SystemDefault && Application.Current.RequestedTheme == AppTheme.Light))
             {
                 while (!await jsRef.InvokeAsync<bool>("DoesTagExistById", new object?[1] { "darkLightToggle" }))
                 {

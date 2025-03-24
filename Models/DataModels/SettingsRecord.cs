@@ -9,6 +9,13 @@ namespace TodoApp.Models.DataModels
 {
     class SettingsRecord : BaseDataModel
     {
-        public bool StartWithDarkMode { get; set; }
+        public DefaultLighting DefaultLighting { get; set; }
+    }
+
+    public enum DefaultLighting
+    {
+        Light,
+        Dark,
+        SystemDefault
     }
 }
