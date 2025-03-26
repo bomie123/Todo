@@ -14,21 +14,18 @@ namespace TodoApp.Helpers
     {
         #region Database initialization
 
-        private static SqliteConnection _internalDbConnection { get; set; }
+        private static SqliteConnection? _internalDbConnection { get; set; }
 
         private static SqliteConnection DbConnection()
         {
-            lock (_internalDbConnection)
-            {
-                _internalDbConnection ??= new SqliteConnection(
-                    new SqliteConnectionStringBuilder(
-                        $"Data Source={Path.Combine(FileSystem.Current.CacheDirectory, "todo.db")}")
-                    {
-                        Mode = SqliteOpenMode.ReadWriteCreate,
-                    }.ConnectionString);
-                _internalDbConnection.Open();
-                return _internalDbConnection;
-            }
+            _internalDbConnection ??= new SqliteConnection(
+                new SqliteConnectionStringBuilder(
+                    $"Data Source={Path.Combine(FileSystem.Current.CacheDirectory, "todo.db")}")
+                {
+                    Mode = SqliteOpenMode.ReadWriteCreate,
+                }.ConnectionString);
+            _internalDbConnection.Open();
+            return _internalDbConnection;
         }
 
         private static readonly string DefaultWhereClause = "active=true";
@@ -37,55 +34,56 @@ namespace TodoApp.Helpers
 
         public static void DeleteDatabase()
         {
-            lock (_internalDbConnection)
+            foreach (var table in GetDataFromSqlCommand<ColumnNameList>(
+                         $"SELECT * FROM sqlite_master WHERE type='table' AND name is not 'sqlite_sequence'"))
             {
-                File.Delete(Path.Combine(FileSystem.Current.CacheDirectory, "todo.db"));
-                CreatedTables.Clear();
-                if (_internalDbConnection != null)
-                {
-                    _internalDbConnection.Dispose();
-                    _internalDbConnection = null;
-                }
-
-                var test = DbConnection();
-#if DEBUG
-                //upsert some easy default data for testing 
-                DatabaseHelper.UpsertData(new TodoRecord()
-                {
-                    Active = true,
-                    ActionDate = DateTime.UtcNow,
-                    ShowReminderBeforeDays = 0,
-                    Label = "Walk dog",
-                    MaxImportance = Importance.High,
-                    RepeatEvery = TimeSpan.FromDays(1)
-                });
-                DatabaseHelper.UpsertData(new TodoRecord()
-                {
-                    Active = true,
-                    ActionDate = new DateTime(DateTime.UtcNow.Year, 11, 1),
-                    ShowReminderBeforeDays = 20,
-                    Label = "Averys birthday",
-                    MaxImportance = Importance.High,
-                    RepeatEvery = TimeSpan.FromDays(365)
-                });
-                DatabaseHelper.UpsertData(new TodoRecord()
-                {
-                    Active = true,
-                    ActionDate = DateTime.UtcNow.AddDays(3),
-                    ShowReminderBeforeDays = 5,
-                    Label = "Drive car",
-                    MaxImportance = Importance.Medium,
-                    RepeatEvery = TimeSpan.FromDays(30)
-                });
-                DatabaseHelper.UpsertData(new TodoRecord()
-                {
-                    Active = true,
-                    ActionDate = DateTime.UtcNow.AddDays(-50),
-                    Label = "Paint fence",
-                    MaxImportance = Importance.Medium
-                });
-#endif
+                ExecuteNonQuery($"drop table {table.Name}");
             }
+
+            CreatedTables.Clear();
+            if (_internalDbConnection != null)
+            {
+                _internalDbConnection.Dispose();
+                _internalDbConnection = null;
+            }
+#if DEBUG
+            //upsert some easy default data for testing 
+            DatabaseHelper.UpsertData(new TodoRecord()
+            {
+                Active = true,
+                ActionDate = DateTime.UtcNow,
+                ShowReminderBeforeDays = 0,
+                Label = "Walk dog",
+                MaxImportance = Importance.High,
+                RepeatEvery = TimeSpan.FromDays(1)
+            });
+            DatabaseHelper.UpsertData(new TodoRecord()
+            {
+                Active = true,
+                ActionDate = new DateTime(DateTime.UtcNow.Year, 11, 1),
+                ShowReminderBeforeDays = 20,
+                Label = "Averys birthday",
+                MaxImportance = Importance.High,
+                RepeatEvery = TimeSpan.FromDays(365)
+            });
+            DatabaseHelper.UpsertData(new TodoRecord()
+            {
+                Active = true,
+                ActionDate = DateTime.UtcNow.AddDays(3),
+                ShowReminderBeforeDays = 5,
+                Label = "Drive car",
+                MaxImportance = Importance.Medium,
+                RepeatEvery = TimeSpan.FromDays(30)
+            });
+            DatabaseHelper.UpsertData(new TodoRecord()
+            {
+                Active = true,
+                ActionDate = DateTime.UtcNow.AddDays(-50),
+                Label = "Paint fence",
+                MaxImportance = Importance.Medium
+            });
+#endif
+
         }
 
         public static List<T> GetData<T>(params string[] whereClause) where T : BaseDataModel, new()
@@ -172,6 +170,10 @@ namespace TodoApp.Helpers
         private class ColumnNameList
         {
             public string Name { get; set; }
+            public string Type { get; set; }
+            public string tbl_name { get; set; }
+            public string rootpage { get; set; }
+            public string sql { get; set; }
         }
 
         private static List<string> CreatedTables = new List<string>();
@@ -183,7 +185,7 @@ namespace TodoApp.Helpers
                 return;
             }
             if (!GetDataFromSqlCommand<ColumnNameList>(
-                    $"SELECT name FROM sqlite_master WHERE type='table' AND name='{GetTableName<T>()}';").Any())
+                    $"SELECT * FROM sqlite_master WHERE type='table' AND name='{GetTableName<T>()}';").Any())
             {
                 ExecuteNonQuery(GetTableCreateStatement<T>());
             }
@@ -337,7 +339,9 @@ namespace TodoApp.Helpers
                 Log.Warning($"Executing Query - {sqlToRun}");
 
                 var reader = GetCommand(sqlToRun).ExecuteReader();
+                //get all columns of table
                 var columnSchema = reader.GetColumnSchema();
+                var columns = reader.GetColumnSchema().Select(x => x.ColumnName);
                 var returnVal = new List<T>();
                 while (reader.Read())
                 {
@@ -363,7 +367,6 @@ namespace TodoApp.Helpers
                         {
 
                             property.SetValue(instance, valueToAdd);
-
                         }
 
                     }

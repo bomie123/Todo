@@ -14,13 +14,14 @@
         </InputSelect>
     </div>
     <div class="form-group row" style="margin-top: 30px;">
-        <button type="button" class="btn btn-primary" @onclick="ConfirmDeletionDatabase">
+        <button disabled="@IsDisabled" type="button" class="btn btn-primary" @onclick="ConfirmDeletionDatabase">
             Delete database
         </button>
     </div>
 </form>
 @code {
     SettingsRecord localSettings = SettingsHelper.GetSettingsRecord();
+    protected static bool IsDisabled { get; set; } 
 
     void IDisposable.Dispose()
     {
@@ -29,11 +30,14 @@
 
     private void ConfirmDeletionDatabase()
     {
+        IsDisabled = true;
         var window = App.Current.Windows[0].Page;
         window.Dispatcher.Dispatch(async () =>
         {
             if (await window.DisplayAlert("Confirmation", "Are you sure you want to delete your database? You will not be able to recover this data and it will reset everything", "Accept", "Cancel"))
                 DatabaseHelper.DeleteDatabase();
+            IsDisabled = false;
+            StateHasChanged();
         });
 
     }
