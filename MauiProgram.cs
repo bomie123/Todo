@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Serilog;
 using TodoApp.Helpers;
-using TodoApp.Models.DataModels;
-using TodoApp.Models.DataModels.Enums;
 
 namespace TodoApp;
 
