@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Blazored.Modal;
+using Microsoft.Extensions.Logging;
 using Serilog;
 using TodoApp.Helpers;
 
@@ -22,6 +23,7 @@ public static class MauiProgram
 			});
 
         builder.Services.AddMauiBlazorWebView();
+        builder.Services.AddBlazoredModal();
 
 #if DEBUG
 		builder.Services.AddBlazorWebViewDeveloperTools();
