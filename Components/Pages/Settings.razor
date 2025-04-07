@@ -1,5 +1,6 @@
 ﻿@page "/Settings"
 @using Microsoft.Maui.Controls.PlatformConfiguration
+@using TodoApp.Components.Modals
 @using TodoApp.Models.DataModels.Enums
 @implements IDisposable;
 <form>
@@ -14,12 +15,18 @@
         </InputSelect>
     </div>
     <div class="form-group row" style="margin-top: 30px;">
+        <button type="button" class="btn btn-primary" @onclick="OnShowInfoClicked">
+            Show Info
+        </button>
+    </div>
+    <div class="form-group row" style="margin-top: 30px;">
         <button disabled="@IsDisabled" type="button" class="btn btn-primary" @onclick="ConfirmDeletionDatabase">
             Delete database
         </button>
     </div>
 </form>
 @code {
+    [CascadingParameter] public IModalService Modal { get; set; } = default!;
     SettingsRecord localSettings = SettingsHelper.GetSettingsRecord();
     protected static bool IsDisabled { get; set; } 
 
@@ -40,6 +47,13 @@
             StateHasChanged();
         });
 
+    }
+    private void OnShowInfoClicked()
+    {
+        ((IModalService)Modal).Show<About>(new ModalOptions()
+            {
+                HideHeader = true
+            });
     }
 
 }

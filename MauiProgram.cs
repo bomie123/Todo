@@ -41,6 +41,7 @@ public static class MauiProgram
         //Further expansions
         //timer - for exercize
         //implement logging 
+        //calendar integration?
         //mechanism to back up tasks in google drive
         //homescreen widget 
         //combined todos (a todo made up of many sub todos)
