@@ -1,6 +1,21 @@
 ﻿<h3>addTodo</h3>
+<EditForm Model=@todoRecord>
+    <div class="form-group">
+        <label for="label">Label</label>
+        <InputText @bind-Value=@todoRecord.Label class="form-control" id="label" />
+    </div>
+    <div class="form-group">
+        <label for="LongText">LongText</label>
+        <InputTextArea @bind-Value=@todoRecord.LongText class="form-control" id="LongText" />
+    </div>
+    <div class="form-group">
+        <label for="ShowReminderBeforeDays">How many days to show a reminder before?</label>
+        <InputNumber step="1"  @bind-Value=@todoRecord.ShowReminderBeforeDays class="form-control" id="ShowReminderBeforeDays" />
+    </div>
 
+    <input style="margin-top: 20px; float: right ;" type="submit" class="btn btn-primary" value="Save"/>
+</EditForm>
 
 @code {
-
+    TodoRecord todoRecord = new TodoRecord();
 }

@@ -1,7 +1,5 @@
 ﻿@page "/Settings"
-@using Microsoft.Maui.Controls.PlatformConfiguration
 @using TodoApp.Components.Modals
-@using TodoApp.Models.DataModels.Enums
 @implements IDisposable;
 <form>
     <div class="form-group row">
@@ -10,7 +8,7 @@
             @foreach (var lightingState in Enum.GetValues(typeof(DefaultLighting)))
             {
 
-                <option value="@lightingState">@lightingState</option>
+                <option value="@lightingState">Lighting Mode - @lightingState</option>
             }
         </InputSelect>
     </div>
