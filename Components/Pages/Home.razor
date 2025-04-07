@@ -1,10 +1,6 @@
 ﻿@page "/"
 @using TodoApp.Models.DataModels.Enums
-@using static Layout.NavMenu;
-@using TodoApp.Components.Layout
-@using Android.Widget
 @using TodoApp.Components.Modals
-@inject NavigationManager Navigation
 
 
 <table class="table">
@@ -70,7 +66,7 @@
     {
         ((IModalService)Modal).Show<AddTodo>(new ModalOptions()
         {
-            
+            HideHeader = true
         });
     }
 
