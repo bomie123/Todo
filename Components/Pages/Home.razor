@@ -14,21 +14,21 @@
     <tbody>
         @foreach (var todo in CurrentData.OrderBy(x => x.CurrentImportance))
         {
-            <tr onclick="document.getElementById('@todo.Id').click(); " hidden="@todo.ShouldBeHidden">
+            <tr @onclick="async (e) => await OnRowClick( todo)" hidden="@todo.ShouldBeHidden">
                 <td>
                     <div style="white-space: nowrap;">
-                    @if (todo.Due)
-                    {
-                        <input type="checkbox" checked="@todo.Complete" id="@todo.Id" @onchange="(e) => OnCheckboxChange(todo.Id, (bool)e.Value)"/>
-                    }
-                    else
-                    {
-                        <input type="checkbox" checked="@todo.ReminderComplete" id="@todo.Id" @onchange="(e) => OnCheckboxChange(todo.Id, (bool)e.Value)"/>
-                    }
-                    @if (todo.CurrentImportance == Importance.High)
-                    {
-                        <img src="Resources/Icons/warning.png" width="25px" height="25px" />
-                    }
+                        @if (todo.Due)
+                        {
+                            <input type="checkbox" checked="@todo.Complete" id="@todo.Id" @onchange="(e) => OnCheckboxChange(todo.Id, (bool)e.Value)" />
+                        }
+                        else
+                        {
+                            <input type="checkbox" checked="@todo.ReminderComplete" id="@todo.Id" @onchange="(e) => OnCheckboxChange(todo.Id, (bool)e.Value)" />
+                        }
+                        @if (todo.CurrentImportance == Importance.High)
+                        {
+                            <img src="Resources/Icons/warning.png" width="25px" height="25px" />
+                        }
                     </div>
                 </td>
                 <td>@todo.Label</td>
@@ -39,36 +39,61 @@
 </table>
 <button class="btn btn-success" style="right: 0; bottom: 0; position: fixed; margin: 10px; padding:10px;border-radius: 50%;" @onclick="OnAddBtnClick">
     <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-plus" viewBox="0 0 16 16">
-        <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/>
+        <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
     </svg>
-    </button>
+</button>
 
 @code
 {
     [CascadingParameter] public IModalService Modal { get; set; } = default!;
+    
     private List<TodoRecord> CurrentData { get; set; } = DatabaseHelper.GetData<TodoRecord>();
+
+    private async Task OnRowClick( TodoRecord todo)
+    {
+        var modalResult = await Modal.Show<Confirmation>(new ModalOptions()
+        {
+            HideHeader = true,
+        }).Result;
+        if (modalResult.Confirmed)
+            OnCheckboxChange(todo.Id, todo.Due ? !todo.Complete : !todo.ReminderComplete);
+        RefreshData();
+    }
+
+    //TODO setup a confirmation dialog on tapping a record
+    //TODO implement a long tap on record allowing edits
+    //TODO make it so that tapping the checkbox checks it bypassing the confirmation dialog
+    //TODO add a button to show and restore checked notifications
+
     private void OnCheckboxChange(long checkboxId, bool checkboxChecked)
     {
-        var record = (TodoRecord)CurrentData.FirstOrDefault(x => x.Id == checkboxId);
+        var record = CurrentData.FirstOrDefault(x => x.Id == checkboxId);
+        if (record == null)
+            return;
 
         if (record.Due)
-        {
             record.Complete = checkboxChecked;
-        }
         else
-        {
             record.ReminderComplete = checkboxChecked;
-        }
         DatabaseHelper.UpsertData(record);
+
     }
 
-    private void OnAddBtnClick()
+    private async Task OnAddBtnClick()
     {
-        ((IModalService)Modal).Show<AddTodo>(new ModalOptions()
+        var modalResult = await Modal.Show<AddTodo>(new ModalOptions()
         {
-            HideHeader = true
-        });
+            HideHeader = true,
+        }).Result;
+        if (modalResult.Confirmed)
+            RefreshData();
+        
     }
 
+    private void RefreshData()
+    {
+        CurrentData = DatabaseHelper.GetData<TodoRecord>();
+
+    }
 
 }

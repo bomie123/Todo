@@ -1,21 +1,45 @@
-﻿<h3>addTodo</h3>
+﻿@using TodoApp.Components.Components
+<h3>add Todo</h3>
 <EditForm Model=@todoRecord>
     <div class="form-group">
-        <label for="label">Label</label>
+        <label for="label">The short label of this TODO</label>
         <InputText @bind-Value=@todoRecord.Label class="form-control" id="label" />
     </div>
     <div class="form-group">
-        <label for="LongText">LongText</label>
+        <label for="LongText">A detailed description</label>
         <InputTextArea @bind-Value=@todoRecord.LongText class="form-control" id="LongText" />
+    </div>
+    <div class="form-group">
+        <label for="ActionDate">When should we do this?</label>
+        <InputDate step="1"  @bind-Value=@todoRecord.ActionDate class="form-control" id="ActionDate" />
     </div>
     <div class="form-group">
         <label for="ShowReminderBeforeDays">How many days to show a reminder before?</label>
         <InputNumber step="1"  @bind-Value=@todoRecord.ShowReminderBeforeDays class="form-control" id="ShowReminderBeforeDays" />
     </div>
-
-    <input style="margin-top: 20px; float: right ;" type="submit" class="btn btn-primary" value="Save"/>
+    <div class="form-group">
+        <label for="RepeatEvery">Repeat?</label>
+        <TimeFramePicker @bind-Value=@todoRecord.RepeatEvery class="form-control" id="RepeatEvery" />
+    </div>
+    <input style="margin-top: 20px; float: right ;" type="submit" class="btn btn-primary" value="Save" @onclick="AttemptSubmitRecord"/>
 </EditForm>
 
 @code {
-    TodoRecord todoRecord = new TodoRecord();
+    [CascadingParameter] BlazoredModalInstance BlazoredModal { get; set; } = default!;
+
+    [Parameter]
+    TodoRecord todoRecord { get; set; }= new TodoRecord()
+    {
+        Active = true,
+        Complete = false,
+        ActionDate = DateTime.UtcNow,
+    };
+
+
+
+    private async Task AttemptSubmitRecord()
+    {
+        var record = DatabaseHelper.UpsertDataWithReturn(todoRecord);
+        await BlazoredModal.CloseAsync(ModalResult.Ok(todoRecord));
+    }
 }
