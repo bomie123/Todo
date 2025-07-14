@@ -5,7 +5,7 @@ using DateTime = System.DateTime;
 
 namespace TodoApp.Models.DataModels
 {
-    class TodoRecord : BaseDataModel
+    public class TodoRecord : BaseDataModel
     {
         public string Label { get; set; }
         public string LongText { get; set; }

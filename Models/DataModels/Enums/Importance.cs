@@ -1,6 +1,6 @@
 ﻿namespace TodoApp.Models.DataModels.Enums
 {
-    enum Importance
+    public enum Importance
     {
         High, Medium, Low
     }

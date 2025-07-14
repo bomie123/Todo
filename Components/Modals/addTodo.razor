@@ -25,10 +25,11 @@
 </EditForm>
 
 @code {
-    [CascadingParameter] BlazoredModalInstance BlazoredModal { get; set; } = default!;
+    [CascadingParameter] 
+    BlazoredModalInstance BlazoredModal { get; set; } = default!;
 
     [Parameter]
-    TodoRecord todoRecord { get; set; }= new TodoRecord()
+    public TodoRecord todoRecord { get; set; }= new TodoRecord()
     {
         Active = true,
         Complete = false,
